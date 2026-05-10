@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -86,7 +87,7 @@ func (p *Poller) Run(ctx context.Context) {
 		p.Interval = 30 * time.Minute
 	}
 	if err := p.Once(ctx); err != nil {
-		// log handled by caller
+		log.Printf("weather: poll error: %v", err)
 	}
 	t := time.NewTicker(p.Interval)
 	defer t.Stop()
@@ -95,7 +96,9 @@ func (p *Poller) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			_ = p.Once(ctx)
+			if err := p.Once(ctx); err != nil {
+				log.Printf("weather: poll error: %v", err)
+			}
 		}
 	}
 }
