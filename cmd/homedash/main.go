@@ -1,24 +1,29 @@
 package main
 
 import (
-	"fmt"
+	"flag"
 	"log"
 	"net/http"
-	"os"
+
+	"github.com/zoomacode/homedash/internal/config"
+	"github.com/zoomacode/homedash/internal/state"
+	"github.com/zoomacode/homedash/internal/web"
 )
 
 func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "ok")
-	})
+	cfgPath := flag.String("config", "/etc/homedash/config.yaml", "path to config.yaml")
+	flag.Parse()
 
-	addr := os.Getenv("HOMEDASH_LISTEN")
-	if addr == "" {
-		addr = ":8080"
+	cfg, err := config.Load(*cfgPath)
+	if err != nil {
+		log.Fatalf("config: %v", err)
 	}
-	log.Printf("homedash listening on %s", addr)
-	if err := http.ListenAndServe(addr, mux); err != nil {
+
+	st := state.New()
+	srv := web.New(st)
+
+	log.Printf("homedash listening on %s", cfg.HTTP.Listen)
+	if err := http.ListenAndServe(cfg.HTTP.Listen, srv.Handler()); err != nil {
 		log.Fatal(err)
 	}
 }

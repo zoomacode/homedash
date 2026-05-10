@@ -1,0 +1,6 @@
+:root { color-scheme: dark light; }
+body { font-family: system-ui, sans-serif; margin: 0; padding: 1rem; background: #111; color: #eee; }
+main { max-width: 64rem; margin: 0 auto; display: grid; gap: 1rem; }
+section { background: #1a1a1a; border-radius: .75rem; padding: 1rem; }
+@media (min-width: 900px) { main { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1400px) { main { grid-template-columns: 1fr 1fr 1fr; } }

@@ -1,10 +1,13 @@
-.PHONY: build run test build-pi deploy
+.PHONY: build run test build-pi deploy generate
 
 BIN := dist/homedash
 PI_HOST ?= homedash.local
 PI_USER ?= pi
 
-build:
+generate:
+	templ generate
+
+build: generate
 	go build -o $(BIN) ./cmd/homedash
 
 run: build

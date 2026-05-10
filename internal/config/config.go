@@ -22,7 +22,9 @@ type Config struct {
 	ICloud    ICloud    `yaml:"-"` // from env
 }
 
-type HTTP struct{ Listen string `yaml:"listen"` }
+type HTTP struct {
+	Listen string `yaml:"listen"`
+}
 type Location struct {
 	Lat float64 `yaml:"lat"`
 	Lon float64 `yaml:"lon"`
@@ -48,8 +50,12 @@ type Calendars struct {
 	PollMinutes int      `yaml:"poll_minutes"`
 	Include     []string `yaml:"include"`
 }
-type Reminders struct{ ListName string `yaml:"list_name"` }
-type Weather struct{ PollMinutes int `yaml:"poll_minutes"` }
+type Reminders struct {
+	ListName string `yaml:"list_name"`
+}
+type Weather struct {
+	PollMinutes int `yaml:"poll_minutes"`
+}
 type RSS struct {
 	PollMinutes int      `yaml:"poll_minutes"`
 	Feeds       []string `yaml:"feeds"`
