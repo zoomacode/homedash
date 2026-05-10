@@ -20,3 +20,8 @@ func (s *Server) handleEventsFragment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_ = templates.Events(s.store.Snapshot().Events).Render(r.Context(), w)
 }
+
+func (s *Server) handleRemindersFragment(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_ = templates.Reminders(s.store.Snapshot().Reminders).Render(r.Context(), w)
+}

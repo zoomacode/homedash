@@ -40,6 +40,7 @@ func (s *Server) routes() {
 	r.Get("/fragment/weather", s.handleWeatherFragment)
 	r.Get("/fragment/sensors", s.handleSensorsFragment)
 	r.Get("/fragment/events", s.handleEventsFragment)
+	r.Get("/fragment/reminders", s.handleRemindersFragment)
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
