@@ -5,12 +5,16 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/zoomacode/homedash/internal/caldav"
 	"github.com/zoomacode/homedash/internal/config"
 	"github.com/zoomacode/homedash/internal/mqttsub"
+	"github.com/zoomacode/homedash/internal/rss"
 	"github.com/zoomacode/homedash/internal/state"
+	"github.com/zoomacode/homedash/internal/store"
 	"github.com/zoomacode/homedash/internal/weather"
 	"github.com/zoomacode/homedash/internal/web"
 )
@@ -48,8 +52,24 @@ func main() {
 
 	go cd.RunEvents(ctx, time.Duration(cfg.Calendars.PollMinutes)*time.Minute)
 
+	db, err := store.Open(filepath.Join(stateDir(), "homedash.db"))
+	if err != nil {
+		log.Fatalf("db: %v", err)
+	}
+	defer db.Close()
+
+	rp := rss.New(cfg.RSS.Feeds, time.Duration(cfg.RSS.PollMinutes)*time.Minute, st, db)
+	go rp.Run(ctx)
+
 	log.Printf("homedash listening on %s", cfg.HTTP.Listen)
 	if err := http.ListenAndServe(cfg.HTTP.Listen, srv.Handler()); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func stateDir() string {
+	if d := os.Getenv("STATE_DIRECTORY"); d != "" {
+		return d
+	}
+	return "./var"
 }
