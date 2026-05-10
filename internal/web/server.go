@@ -17,11 +17,12 @@ var staticFS embed.FS
 
 type Server struct {
 	store  *state.Store
+	cal    ReminderToggler
 	router *chi.Mux
 }
 
-func New(store *state.Store) *Server {
-	s := &Server{store: store, router: chi.NewRouter()}
+func New(store *state.Store, cal ReminderToggler) *Server {
+	s := &Server{store: store, cal: cal, router: chi.NewRouter()}
 	s.routes()
 	return s
 }
@@ -41,6 +42,7 @@ func (s *Server) routes() {
 	r.Get("/fragment/sensors", s.handleSensorsFragment)
 	r.Get("/fragment/events", s.handleEventsFragment)
 	r.Get("/fragment/reminders", s.handleRemindersFragment)
+	r.Post("/reminders/{uid}/toggle", s.handleToggleReminder)
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {

@@ -4,14 +4,15 @@ package caldav
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/emersion/go-ical"
-	caldavlib "github.com/emersion/go-webdav/caldav"
 	"github.com/emersion/go-webdav"
+	caldavlib "github.com/emersion/go-webdav/caldav"
 	"github.com/zoomacode/homedash/internal/state"
 )
 
@@ -223,6 +224,7 @@ func (c *Client) fetchReminders(ctx context.Context, cli *caldavlib.Client, path
 				UID:   uid,
 				Title: title,
 				Done:  done,
+				Path:  obj.Path,
 			})
 		}
 	}
@@ -253,4 +255,66 @@ func (c *Client) supportsComp(cal caldavlib.Calendar, compName string) bool {
 		}
 	}
 	return false
+}
+
+// ToggleReminder sets the STATUS of the VTODO with the given UID to COMPLETED
+// or NEEDS-ACTION depending on done, then writes it back to the CalDAV server.
+func (c *Client) ToggleReminder(ctx context.Context, uid string, done bool) error {
+	cli, err := caldavlib.NewClient(c.httpClient, c.endpoint)
+	if err != nil {
+		return err
+	}
+
+	principal, err := cli.FindCurrentUserPrincipal(ctx)
+	if err != nil {
+		return err
+	}
+
+	homeSet, err := cli.FindCalendarHomeSet(ctx, principal)
+	if err != nil {
+		return err
+	}
+
+	calendars, err := cli.FindCalendars(ctx, homeSet)
+	if err != nil {
+		return err
+	}
+
+	for _, cal := range calendars {
+		if !strings.EqualFold(cal.Name, c.listName) {
+			continue
+		}
+		objs, err := cli.QueryCalendar(ctx, cal.Path, &caldavlib.CalendarQuery{
+			CompFilter: caldavlib.CompFilter{
+				Name: ical.CompCalendar,
+				Comps: []caldavlib.CompFilter{
+					{Name: ical.CompToDo},
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+		for _, o := range objs {
+			if o.Data == nil {
+				continue
+			}
+			for _, comp := range o.Data.Children {
+				if comp.Name != ical.CompToDo || getProp(comp, ical.PropUID) != uid {
+					continue
+				}
+				comp.Props.SetText(ical.PropStatus, statusFor(done))
+				_, err = cli.PutCalendarObject(ctx, o.Path, o.Data)
+				return err
+			}
+		}
+	}
+	return fmt.Errorf("reminder %s not found", uid)
+}
+
+func statusFor(done bool) string {
+	if done {
+		return "COMPLETED"
+	}
+	return "NEEDS-ACTION"
 }

@@ -25,7 +25,10 @@ func main() {
 	}
 
 	st := state.New()
-	srv := web.New(st)
+
+	cd := caldav.New(cfg.ICloud.User, cfg.ICloud.AppPassword, cfg.Calendars.Include, cfg.Reminders.ListName, st)
+
+	srv := web.New(st, cd)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -43,7 +46,6 @@ func main() {
 		log.Printf("mqtt: %v", err)
 	}
 
-	cd := caldav.New(cfg.ICloud.User, cfg.ICloud.AppPassword, cfg.Calendars.Include, cfg.Reminders.ListName, st)
 	go cd.RunEvents(ctx, time.Duration(cfg.Calendars.PollMinutes)*time.Minute)
 
 	log.Printf("homedash listening on %s", cfg.HTTP.Listen)

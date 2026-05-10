@@ -42,6 +42,7 @@ type Event struct {
 type Reminder struct {
 	UID, Title string
 	Done       bool
+	Path       string
 }
 type NewsItem struct {
 	GUID, Feed, Title, Link string
