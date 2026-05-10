@@ -1,0 +1,13 @@
+package templates
+
+import (
+	"time"
+
+	"github.com/zoomacode/homedash/internal/state"
+)
+
+templ Page(snap state.Snapshot, now time.Time) {
+	@Layout("homedash") {
+		@Clock(now)
+	}
+}

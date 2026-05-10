@@ -1,0 +1,10 @@
+package templates
+
+import "time"
+
+templ Clock(now time.Time) {
+	<section id="clock">
+		<div class="date">{ now.Format("Mon 02 Jan 2006") }</div>
+		<div class="time">{ now.Format("15:04") }</div>
+	</section>
+}

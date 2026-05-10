@@ -5,6 +5,7 @@ import (
 	"embed"
 	"io/fs"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/zoomacode/homedash/internal/state"
@@ -39,5 +40,5 @@ func (s *Server) routes() {
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = templates.Layout("homedash").Render(r.Context(), w)
+	_ = templates.Page(s.store.Snapshot(), time.Now()).Render(r.Context(), w)
 }
