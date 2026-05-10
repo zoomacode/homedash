@@ -34,6 +34,11 @@ func (s *Server) handleRemindersFragment(w http.ResponseWriter, r *http.Request)
 	_ = templates.Reminders(s.store.Snapshot().Reminders).Render(r.Context(), w)
 }
 
+func (s *Server) handleNewsFragment(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_ = templates.News(s.store.Snapshot().News).Render(r.Context(), w)
+}
+
 func (s *Server) handleToggleReminder(w http.ResponseWriter, r *http.Request) {
 	if s.cal == nil {
 		http.Error(w, "calendar not configured", http.StatusServiceUnavailable)
