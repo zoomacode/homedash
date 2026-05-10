@@ -6,7 +6,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/zoomacode/homedash/internal/caldav"
@@ -35,7 +37,7 @@ func main() {
 
 	srv := web.New(st, cd, cfg.Photos.SlideshowSeconds)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
 	wp := &weather.Poller{
@@ -71,9 +73,17 @@ func main() {
 	go pp.Run(ctx)
 
 	log.Printf("homedash listening on %s", cfg.HTTP.Listen)
-	if err := http.ListenAndServe(cfg.HTTP.Listen, srv.Handler()); err != nil {
-		log.Fatal(err)
-	}
+	httpSrv := &http.Server{Addr: cfg.HTTP.Listen, Handler: srv.Handler()}
+	go func() {
+		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}()
+
+	<-ctx.Done()
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelShutdown()
+	_ = httpSrv.Shutdown(shutdownCtx)
 }
 
 func stateDir() string {
