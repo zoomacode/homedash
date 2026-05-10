@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -156,7 +157,9 @@ func (p *Poller) onceICloud(ctx context.Context) error {
 
 // Run polls on the configured Refresh interval until ctx is cancelled.
 func (p *Poller) Run(ctx context.Context) {
-	_ = p.Once(ctx)
+	if err := p.Once(ctx); err != nil {
+		log.Printf("photos: poll: %v", err)
+	}
 	if p.Refresh == 0 {
 		p.Refresh = 6 * time.Hour
 	}
@@ -167,7 +170,9 @@ func (p *Poller) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			_ = p.Once(ctx)
+			if err := p.Once(ctx); err != nil {
+				log.Printf("photos: poll: %v", err)
+			}
 		}
 	}
 }

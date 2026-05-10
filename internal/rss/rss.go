@@ -3,6 +3,7 @@ package rss
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/mmcdole/gofeed"
@@ -61,7 +62,9 @@ func (p *Poller) Run(ctx context.Context) {
 	if p.Interval == 0 {
 		p.Interval = 15 * time.Minute
 	}
-	_ = p.Once(ctx)
+	if err := p.Once(ctx); err != nil {
+		log.Printf("rss: poll: %v", err)
+	}
 	t := time.NewTicker(p.Interval)
 	defer t.Stop()
 	for {
@@ -69,7 +72,9 @@ func (p *Poller) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			_ = p.Once(ctx)
+			if err := p.Once(ctx); err != nil {
+				log.Printf("rss: poll: %v", err)
+			}
 		}
 	}
 }
