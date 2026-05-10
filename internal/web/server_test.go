@@ -51,3 +51,16 @@ func TestIndex_RendersClock(t *testing.T) {
 		t.Errorf("body missing clock section")
 	}
 }
+
+func TestIndex_RendersSensors(t *testing.T) {
+	st := state.New()
+	st.SetSensor(state.Sensor{Topic: "sensors/temp", Name: "Outdoor Temp", Unit: "°C", Group: "outdoor", Value: "21.5"})
+	srv := New(st)
+	rr := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rr, httptest.NewRequest("GET", "/", nil))
+
+	body := rr.Body.String()
+	if !strings.Contains(body, "Outdoor Temp") || !strings.Contains(body, "21.5°C") {
+		t.Errorf("body missing sensor: %s", body)
+	}
+}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/zoomacode/homedash/internal/config"
+	"github.com/zoomacode/homedash/internal/mqttsub"
 	"github.com/zoomacode/homedash/internal/state"
 	"github.com/zoomacode/homedash/internal/weather"
 	"github.com/zoomacode/homedash/internal/web"
@@ -33,6 +34,13 @@ func main() {
 		Store: st, Interval: time.Duration(cfg.Weather.PollMinutes) * time.Minute,
 	}
 	go wp.Run(ctx)
+
+	mc := mqttsub.New(mqttsub.Config{
+		Broker: cfg.MQTT.Broker, ClientID: cfg.MQTT.ClientID, Topics: cfg.MQTT.Topics,
+	}, st)
+	if err := mc.Start(ctx); err != nil {
+		log.Printf("mqtt: %v", err)
+	}
 
 	log.Printf("homedash listening on %s", cfg.HTTP.Listen)
 	if err := http.ListenAndServe(cfg.HTTP.Listen, srv.Handler()); err != nil {
