@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/zoomacode/homedash/internal/caldav"
 	"github.com/zoomacode/homedash/internal/config"
 	"github.com/zoomacode/homedash/internal/mqttsub"
 	"github.com/zoomacode/homedash/internal/state"
@@ -41,6 +42,9 @@ func main() {
 	if err := mc.Start(ctx); err != nil {
 		log.Printf("mqtt: %v", err)
 	}
+
+	cd := caldav.New(cfg.ICloud.User, cfg.ICloud.AppPassword, cfg.Calendars.Include, cfg.Reminders.ListName, st)
+	go cd.RunEvents(ctx, time.Duration(cfg.Calendars.PollMinutes)*time.Minute)
 
 	log.Printf("homedash listening on %s", cfg.HTTP.Listen)
 	if err := http.ListenAndServe(cfg.HTTP.Listen, srv.Handler()); err != nil {
