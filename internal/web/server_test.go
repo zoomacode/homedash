@@ -64,3 +64,14 @@ func TestIndex_RendersSensors(t *testing.T) {
 		t.Errorf("body missing sensor: %s", body)
 	}
 }
+
+func TestIndex_RendersAuthBannerWhenSet(t *testing.T) {
+	st := state.New()
+	st.SetICloudAuthError(true)
+	srv := New(st, nil, 8)
+	rr := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rr, httptest.NewRequest("GET", "/", nil))
+	if !strings.Contains(rr.Body.String(), "iCloud authentication failed") {
+		t.Errorf("banner not rendered")
+	}
+}

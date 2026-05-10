@@ -16,6 +16,16 @@ import (
 	"github.com/zoomacode/homedash/internal/state"
 )
 
+// is401 reports whether err represents an HTTP 401 Unauthorized response.
+// go-webdav's internal.HTTPError is not exported, so we detect it via the
+// error string which is formatted as "401 Unauthorized[: ...]".
+func is401(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.HasPrefix(err.Error(), "401 ")
+}
+
 const defaultEndpoint = "https://caldav.icloud.com/"
 
 // Client polls a CalDAV server for events and to-dos.
@@ -44,7 +54,21 @@ func New(user, password string, calendars []string, listName string, store *stat
 }
 
 // PollOnce performs a single CalDAV fetch and updates the store.
+// It detects HTTP 401 responses and sets the ICloudAuthError flag accordingly.
 func (c *Client) PollOnce(ctx context.Context) error {
+	err := c.pollOnce(ctx)
+	if is401(err) {
+		c.store.SetICloudAuthError(true)
+		return err
+	}
+	if err == nil {
+		c.store.SetICloudAuthError(false)
+	}
+	return err
+}
+
+// pollOnce is the internal implementation of PollOnce.
+func (c *Client) pollOnce(ctx context.Context) error {
 	cli, err := caldavlib.NewClient(c.httpClient, c.endpoint)
 	if err != nil {
 		return err
@@ -259,7 +283,21 @@ func (c *Client) supportsComp(cal caldavlib.Calendar, compName string) bool {
 
 // ToggleReminder sets the STATUS of the VTODO with the given UID to COMPLETED
 // or NEEDS-ACTION depending on done, then writes it back to the CalDAV server.
+// It detects HTTP 401 responses and sets the ICloudAuthError flag accordingly.
 func (c *Client) ToggleReminder(ctx context.Context, uid string, done bool) error {
+	err := c.toggleReminder(ctx, uid, done)
+	if is401(err) {
+		c.store.SetICloudAuthError(true)
+		return err
+	}
+	if err == nil {
+		c.store.SetICloudAuthError(false)
+	}
+	return err
+}
+
+// toggleReminder is the internal implementation of ToggleReminder.
+func (c *Client) toggleReminder(ctx context.Context, uid string, done bool) error {
 	cli, err := caldavlib.NewClient(c.httpClient, c.endpoint)
 	if err != nil {
 		return err

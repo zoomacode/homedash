@@ -8,6 +8,7 @@ import (
 
 templ Page(snap state.Snapshot, now time.Time, slideshowSeconds int) {
 	@Layout("homedash") {
+		@AuthBanner(snap.ICloudAuthError)
 		@Clock(now)
 		@Weather(snap.Weather)
 		@Sensors(snap)

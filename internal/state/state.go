@@ -8,12 +8,13 @@ import (
 )
 
 type Snapshot struct {
-	Weather   Weather
-	Sensors   map[string]Sensor // key: topic
-	Events    []Event
-	Reminders []Reminder
-	News      []NewsItem
-	Photos    []Photo
+	Weather         Weather
+	Sensors         map[string]Sensor // key: topic
+	Events          []Event
+	Reminders       []Reminder
+	News            []NewsItem
+	Photos          []Photo
+	ICloudAuthError bool
 }
 
 type Weather struct {
@@ -150,4 +151,9 @@ func (s *Store) SetNews(n []NewsItem) {
 func (s *Store) SetPhotos(p []Photo) {
 	s.update(func(sn *Snapshot) { sn.Photos = p })
 	s.notify("photos")
+}
+
+func (s *Store) SetICloudAuthError(b bool) {
+	s.update(func(sn *Snapshot) { sn.ICloudAuthError = b })
+	s.notify("auth")
 }

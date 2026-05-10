@@ -1,5 +1,11 @@
 package templates
 
+templ AuthBanner(visible bool) {
+	if visible {
+		<div class="banner banner-error">iCloud authentication failed — rotate the app password.</div>
+	}
+}
+
 templ Layout(title string) {
 	<!DOCTYPE html>
 	<html lang="en">
