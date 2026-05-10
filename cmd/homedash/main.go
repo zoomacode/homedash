@@ -12,6 +12,7 @@ import (
 	"github.com/zoomacode/homedash/internal/caldav"
 	"github.com/zoomacode/homedash/internal/config"
 	"github.com/zoomacode/homedash/internal/mqttsub"
+	"github.com/zoomacode/homedash/internal/photos"
 	"github.com/zoomacode/homedash/internal/rss"
 	"github.com/zoomacode/homedash/internal/state"
 	"github.com/zoomacode/homedash/internal/store"
@@ -60,6 +61,14 @@ func main() {
 
 	rp := rss.New(cfg.RSS.Feeds, time.Duration(cfg.RSS.PollMinutes)*time.Minute, st, db)
 	go rp.Run(ctx)
+
+	pp := &photos.Poller{
+		AlbumURL: cfg.Photos.SharedAlbumURL,
+		CacheDir: cfg.Photos.CacheDir,
+		Refresh:  time.Duration(cfg.Photos.RefreshHours) * time.Hour,
+		Store:    st, DB: db,
+	}
+	go pp.Run(ctx)
 
 	log.Printf("homedash listening on %s", cfg.HTTP.Listen)
 	if err := http.ListenAndServe(cfg.HTTP.Listen, srv.Handler()); err != nil {
