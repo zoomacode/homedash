@@ -36,6 +36,8 @@ func (s *Server) routes() {
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(sub))))
 
 	r.Get("/", s.handleIndex)
+	r.Get("/events", s.handleEvents)
+	r.Get("/fragment/weather", s.handleWeatherFragment)
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {

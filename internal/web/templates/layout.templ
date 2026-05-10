@@ -9,8 +9,9 @@ templ Layout(title string) {
 		<title>{ title }</title>
 		<link rel="stylesheet" href="/static/styles.css"/>
 		<script src="/static/htmx.min.js" defer></script>
+		<script src="/static/htmx-sse.js" defer></script>
 	</head>
-	<body>
+	<body hx-ext="sse" sse-connect="/events">
 		<main>
 			{ children... }
 		</main>

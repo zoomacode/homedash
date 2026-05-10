@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bufio"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -8,6 +9,33 @@ import (
 
 	"github.com/zoomacode/homedash/internal/state"
 )
+
+func TestSSE_DeliversWeatherEvent(t *testing.T) {
+	st := state.New()
+	srv := New(st)
+	ts := httptest.NewServer(srv.Handler())
+	defer ts.Close()
+
+	resp, err := ts.Client().Get(ts.URL + "/events")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	go func() { st.SetWeather(state.Weather{TempC: 1}) }()
+
+	r := bufio.NewReader(resp.Body)
+	for i := 0; i < 10; i++ {
+		line, err := r.ReadString('\n')
+		if err != nil {
+			t.Fatalf("read: %v", err)
+		}
+		if strings.HasPrefix(line, "event: weather") {
+			return
+		}
+	}
+	t.Fatal("no weather event received")
+}
 
 func TestIndex_RendersClock(t *testing.T) {
 	srv := New(state.New())

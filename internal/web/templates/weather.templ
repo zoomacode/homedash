@@ -6,7 +6,10 @@ import (
 )
 
 templ Weather(w state.Weather) {
-	<section id="weather">
+	<section id="weather"
+		hx-get="/fragment/weather"
+		hx-trigger="sse:weather"
+		hx-swap="outerHTML">
 		<h2>Weather</h2>
 		if w.UpdatedAt.IsZero() {
 			<p>loading…</p>
