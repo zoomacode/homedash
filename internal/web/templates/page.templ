@@ -11,5 +11,6 @@ templ Page(snap state.Snapshot, now time.Time) {
 		@Clock(now)
 		@Weather(snap.Weather)
 		@Sensors(snap)
+		@Events(snap.Events)
 	}
 }
