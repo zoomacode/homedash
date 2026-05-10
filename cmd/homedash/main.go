@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/zoomacode/homedash/internal/config"
 	"github.com/zoomacode/homedash/internal/state"
+	"github.com/zoomacode/homedash/internal/weather"
 	"github.com/zoomacode/homedash/internal/web"
 )
 
@@ -21,6 +24,15 @@ func main() {
 
 	st := state.New()
 	srv := web.New(st)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	wp := &weather.Poller{
+		Lat: cfg.Location.Lat, Lon: cfg.Location.Lon,
+		Store: st, Interval: time.Duration(cfg.Weather.PollMinutes) * time.Minute,
+	}
+	go wp.Run(ctx)
 
 	log.Printf("homedash listening on %s", cfg.HTTP.Listen)
 	if err := http.ListenAndServe(cfg.HTTP.Listen, srv.Handler()); err != nil {

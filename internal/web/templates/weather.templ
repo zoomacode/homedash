@@ -1,0 +1,28 @@
+package templates
+
+import (
+	"fmt"
+	"github.com/zoomacode/homedash/internal/state"
+)
+
+templ Weather(w state.Weather) {
+	<section id="weather">
+		<h2>Weather</h2>
+		if w.UpdatedAt.IsZero() {
+			<p>loading…</p>
+		} else {
+			<div class="now">
+				<span class="temp">{ fmt.Sprintf("%.1f°C", w.TempC) }</span>
+				<span class="feels">feels { fmt.Sprintf("%.0f°C", w.FeelsC) }</span>
+			</div>
+			<div class="forecast">
+				for _, d := range w.Forecast {
+					<div class="day">
+						<div>{ d.Date.Format("Mon") }</div>
+						<div>{ fmt.Sprintf("%.0f° / %.0f°", d.HighC, d.LowC) }</div>
+					</div>
+				}
+			</div>
+		}
+	</section>
+}
