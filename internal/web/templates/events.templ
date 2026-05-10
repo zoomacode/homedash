@@ -1,0 +1,53 @@
+package templates
+
+import (
+	"time"
+	"github.com/zoomacode/homedash/internal/state"
+)
+
+templ Events(events []state.Event) {
+	<section id="events"
+		hx-get="/fragment/events"
+		hx-trigger="sse:events"
+		hx-swap="outerHTML">
+		<h2>Calendar</h2>
+		<div class="day">
+			<h3>Today</h3>
+			<ul>
+				for _, e := range eventsOn(events, today()) {
+					<li>
+						<span class="time">{ e.Start.Format("15:04") }</span>
+						<span class="title">{ e.Title }</span>
+					</li>
+				}
+			</ul>
+		</div>
+		<div class="day">
+			<h3>Tomorrow</h3>
+			<ul>
+				for _, e := range eventsOn(events, today().AddDate(0, 0, 1)) {
+					<li>
+						<span class="time">{ e.Start.Format("15:04") }</span>
+						<span class="title">{ e.Title }</span>
+					</li>
+				}
+			</ul>
+		</div>
+	</section>
+}
+
+func today() time.Time {
+	now := time.Now()
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+}
+
+func eventsOn(events []state.Event, day time.Time) []state.Event {
+	end := day.AddDate(0, 0, 1)
+	var out []state.Event
+	for _, e := range events {
+		if !e.Start.Before(day) && e.Start.Before(end) {
+			out = append(out, e)
+		}
+	}
+	return out
+}

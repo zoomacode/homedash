@@ -1,0 +1,20 @@
+package templates
+
+import (
+	"time"
+
+	"github.com/zoomacode/homedash/internal/state"
+)
+
+templ Page(snap state.Snapshot, now time.Time, slideshowSeconds int) {
+	@Layout("homedash") {
+		@AuthBanner(snap.ICloudAuthError)
+		@Clock(now)
+		@Weather(snap.Weather)
+		@Sensors(snap)
+		@Events(snap.Events)
+		@Reminders(snap.Reminders)
+		@News(snap.News)
+		@Photos(snap.Photos, slideshowSeconds)
+	}
+}

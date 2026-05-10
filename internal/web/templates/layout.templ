@@ -1,0 +1,26 @@
+package templates
+
+templ AuthBanner(visible bool) {
+	if visible {
+		<div class="banner banner-error">iCloud authentication failed — rotate the app password.</div>
+	}
+}
+
+templ Layout(title string) {
+	<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<meta charset="utf-8"/>
+		<meta name="viewport" content="width=device-width,initial-scale=1"/>
+		<title>{ title }</title>
+		<link rel="stylesheet" href="/static/styles.css"/>
+		<script src="/static/htmx.min.js" defer></script>
+		<script src="/static/htmx-sse.js" defer></script>
+	</head>
+	<body hx-ext="sse" sse-connect="/events">
+		<main>
+			{ children... }
+		</main>
+	</body>
+	</html>
+}

@@ -1,0 +1,7 @@
+/dist/
+/tmp/
+*.test
+*.out
+.env
+secrets.env
+/var/

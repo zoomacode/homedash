@@ -1,0 +1,48 @@
+version: 1
+
+location:
+  lat: 50.08
+  lon: 14.43
+
+http:
+  listen: ":8080"
+
+mqtt:
+  broker: "tcp://localhost:1883"
+  client_id: "homedash"
+  topics:
+    - topic: "weather/outdoor/temp"
+      name: "Outdoor Temp"
+      unit: "°C"
+      group: "outdoor"
+      decimals: 1
+      stale_after: "5m"
+    - topic: "sensors/livingroom/humidity"
+      name: "Living Room Humidity"
+      unit: "%"
+      group: "indoor"
+      decimals: 0
+      stale_after: "10m"
+
+calendars:
+  poll_minutes: 15
+  include:
+    - "Personal"
+    - "Family"
+
+reminders:
+  list_name: "Dashboard"
+
+weather:
+  poll_minutes: 30
+
+rss:
+  poll_minutes: 15
+  feeds:
+    - "https://example.com/feed.xml"
+
+photos:
+  shared_album_url: "https://www.icloud.com/sharedalbum/#XXXXXXX"
+  refresh_hours: 6
+  cache_dir: "/var/lib/homedash/photos"
+  slideshow_seconds: 8

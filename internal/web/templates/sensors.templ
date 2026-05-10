@@ -1,0 +1,63 @@
+package templates
+
+import (
+	"sort"
+	"time"
+	"github.com/zoomacode/homedash/internal/state"
+)
+
+templ Sensors(snap state.Snapshot) {
+	<section id="sensors"
+		hx-get="/fragment/sensors"
+		hx-trigger="sse:sensors"
+		hx-swap="outerHTML">
+		<h2>Sensors</h2>
+		for _, group := range groupNames(snap) {
+			<div class="group">
+				<h3>{ group }</h3>
+				<ul>
+					for _, sensor := range groupSensors(snap, group) {
+						<li>
+							<span class="name">{ sensor.Name }</span>
+							<span class="value">{ sensor.Value }{ sensor.Unit }</span>
+							if isStale(sensor) {
+								<span class="stale">stale</span>
+							}
+						</li>
+					}
+				</ul>
+			</div>
+		}
+	</section>
+}
+
+func groupNames(s state.Snapshot) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, sn := range s.Sensors {
+		if !seen[sn.Group] {
+			seen[sn.Group] = true
+			out = append(out, sn.Group)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+func groupSensors(s state.Snapshot, group string) []state.Sensor {
+	var out []state.Sensor
+	for _, sn := range s.Sensors {
+		if sn.Group == group {
+			out = append(out, sn)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out
+}
+
+func isStale(s state.Sensor) bool {
+	if s.StaleAfter == 0 {
+		return false
+	}
+	return time.Since(s.UpdatedAt) > s.StaleAfter
+}

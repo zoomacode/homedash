@@ -1,0 +1,22 @@
+[Unit]
+Description=homedash dashboard
+After=network-online.target mosquitto.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/homedash -config /etc/homedash/config.yaml
+EnvironmentFile=/etc/homedash/secrets.env
+Restart=always
+RestartSec=2
+User=homedash
+Group=homedash
+StateDirectory=homedash
+WorkingDirectory=/var/lib/homedash
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
