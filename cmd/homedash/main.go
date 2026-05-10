@@ -33,7 +33,7 @@ func main() {
 
 	cd := caldav.New(cfg.ICloud.User, cfg.ICloud.AppPassword, cfg.Calendars.Include, cfg.Reminders.ListName, st)
 
-	srv := web.New(st, cd)
+	srv := web.New(st, cd, cfg.Photos.SlideshowSeconds)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

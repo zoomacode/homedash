@@ -12,7 +12,7 @@ import (
 
 func TestSSE_DeliversWeatherEvent(t *testing.T) {
 	st := state.New()
-	srv := New(st, nil)
+	srv := New(st, nil, 8)
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
 
@@ -38,7 +38,7 @@ func TestSSE_DeliversWeatherEvent(t *testing.T) {
 }
 
 func TestIndex_RendersClock(t *testing.T) {
-	srv := New(state.New(), nil)
+	srv := New(state.New(), nil, 8)
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	srv.Handler().ServeHTTP(rr, req)
@@ -55,7 +55,7 @@ func TestIndex_RendersClock(t *testing.T) {
 func TestIndex_RendersSensors(t *testing.T) {
 	st := state.New()
 	st.SetSensor(state.Sensor{Topic: "sensors/temp", Name: "Outdoor Temp", Unit: "°C", Group: "outdoor", Value: "21.5"})
-	srv := New(st, nil)
+	srv := New(st, nil, 8)
 	rr := httptest.NewRecorder()
 	srv.Handler().ServeHTTP(rr, httptest.NewRequest("GET", "/", nil))
 

@@ -39,6 +39,22 @@ func (s *Server) handleNewsFragment(w http.ResponseWriter, r *http.Request) {
 	_ = templates.News(s.store.Snapshot().News).Render(r.Context(), w)
 }
 
+func (s *Server) handlePhoto(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	for _, p := range s.store.Snapshot().Photos {
+		if p.ID == id {
+			http.ServeFile(w, r, p.LocalPath)
+			return
+		}
+	}
+	http.NotFound(w, r)
+}
+
+func (s *Server) handlePhotosFragment(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_ = templates.Photos(s.store.Snapshot().Photos, s.slideshowSeconds).Render(r.Context(), w)
+}
+
 func (s *Server) handleToggleReminder(w http.ResponseWriter, r *http.Request) {
 	if s.cal == nil {
 		http.Error(w, "calendar not configured", http.StatusServiceUnavailable)

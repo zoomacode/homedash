@@ -1,0 +1,25 @@
+package templates
+
+import (
+	"fmt"
+	"github.com/zoomacode/homedash/internal/state"
+)
+
+templ Photos(photos []state.Photo, intervalSeconds int) {
+	<section id="photos" data-interval={ fmt.Sprint(intervalSeconds) }
+		hx-get="/fragment/photos"
+		hx-trigger="sse:photos"
+		hx-swap="outerHTML">
+		<h2>Photos</h2>
+		if len(photos) == 0 {
+			<p>no photos yet</p>
+		} else {
+			<div class="slideshow">
+				for i, p := range photos {
+					<img class={ "slide", templ.KV("active", i == 0) } src={ "/photo/" + p.ID } loading="lazy"/>
+				}
+			</div>
+			<script src="/static/slideshow.js" defer></script>
+		}
+	</section>
+}

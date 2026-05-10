@@ -16,13 +16,14 @@ import (
 var staticFS embed.FS
 
 type Server struct {
-	store  *state.Store
-	cal    ReminderToggler
-	router *chi.Mux
+	store            *state.Store
+	cal              ReminderToggler
+	slideshowSeconds int
+	router           *chi.Mux
 }
 
-func New(store *state.Store, cal ReminderToggler) *Server {
-	s := &Server{store: store, cal: cal, router: chi.NewRouter()}
+func New(store *state.Store, cal ReminderToggler, slideshowSeconds int) *Server {
+	s := &Server{store: store, cal: cal, slideshowSeconds: slideshowSeconds, router: chi.NewRouter()}
 	s.routes()
 	return s
 }
@@ -43,10 +44,12 @@ func (s *Server) routes() {
 	r.Get("/fragment/events", s.handleEventsFragment)
 	r.Get("/fragment/reminders", s.handleRemindersFragment)
 	r.Get("/fragment/news", s.handleNewsFragment)
+	r.Get("/photo/{id}", s.handlePhoto)
+	r.Get("/fragment/photos", s.handlePhotosFragment)
 	r.Post("/reminders/{uid}/toggle", s.handleToggleReminder)
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = templates.Page(s.store.Snapshot(), time.Now()).Render(r.Context(), w)
+	_ = templates.Page(s.store.Snapshot(), time.Now(), s.slideshowSeconds).Render(r.Context(), w)
 }
