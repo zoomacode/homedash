@@ -31,6 +31,9 @@ func Open(path string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	if _, err := d.Exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;`); err != nil {
+		return nil, fmt.Errorf("pragmas: %w", err)
+	}
 	if _, err := d.Exec(schema); err != nil {
 		return nil, fmt.Errorf("schema: %w", err)
 	}
@@ -82,21 +85,3 @@ func (d *DB) UpsertPhoto(ctx context.Context, p Photo) error {
 	return err
 }
 
-func (d *DB) AllPhotos(ctx context.Context) ([]Photo, error) {
-	rows, err := d.db.QueryContext(ctx, `SELECT id, url, local_path, fetched_at FROM photos ORDER BY fetched_at DESC`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var out []Photo
-	for rows.Next() {
-		var p Photo
-		var fet string
-		if err := rows.Scan(&p.ID, &p.URL, &p.LocalPath, &fet); err != nil {
-			return nil, err
-		}
-		p.FetchedAt, _ = time.Parse(time.RFC3339, fet)
-		out = append(out, p)
-	}
-	return out, rows.Err()
-}
