@@ -31,4 +31,5 @@ doctor:
 	@echo "  - mosquitto is running"
 	@echo "  - 'homedash' user/group exist (sudo useradd -r homedash)"
 	@echo "  - /etc/homedash/{config.yaml,secrets.env} are populated"
+	@echo "  - /etc/homedash/secrets.env has mode 0600 (chmod 600 /etc/homedash/secrets.env)"
 	@echo "  - /var/lib/homedash exists and is owned by homedash"
