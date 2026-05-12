@@ -14,6 +14,8 @@ import (
 type Config struct {
 	Broker   string
 	ClientID string
+	Username string
+	Password string
 	Topics   []config.Topic
 }
 
@@ -36,6 +38,12 @@ func (c *Client) Start(ctx context.Context) error {
 		SetConnectRetryInterval(2 * time.Second).
 		SetMaxReconnectInterval(60 * time.Second).
 		SetOnConnectHandler(c.onConnect)
+	if c.cfg.Username != "" {
+		opts.SetUsername(c.cfg.Username)
+	}
+	if c.cfg.Password != "" {
+		opts.SetPassword(c.cfg.Password)
+	}
 	c.mc = mqtt.NewClient(opts)
 	tok := c.mc.Connect()
 	go func() {
@@ -47,18 +55,35 @@ func (c *Client) Start(ctx context.Context) error {
 }
 
 func (c *Client) onConnect(mc mqtt.Client) {
+	// Group entries by MQTT topic so a single payload can fan out into
+	// multiple sensors via different field selectors.
+	grouped := map[string][]config.Topic{}
 	for _, t := range c.cfg.Topics {
-		topic := t // capture
-		mc.Subscribe(topic.Topic, 0, func(_ mqtt.Client, m mqtt.Message) {
-			val, err := decodeValue(m.Payload())
-			if err != nil {
-				log.Printf("mqtt decode %s: %v", m.Topic(), err)
-				return
+		grouped[t.Topic] = append(grouped[t.Topic], t)
+	}
+	for topic, entries := range grouped {
+		mc.Subscribe(topic, 0, func(_ mqtt.Client, m mqtt.Message) {
+			for _, e := range entries {
+				val, err := decodeValue(m.Payload(), e.Field)
+				if err != nil {
+					log.Printf("mqtt decode %s field=%q: %v", m.Topic(), e.Field, err)
+					continue
+				}
+				key := e.Topic
+				if e.Field != "" {
+					key = e.Topic + "#" + e.Field
+				}
+				c.store.SetSensor(state.Sensor{
+					Key:        key,
+					Topic:      e.Topic,
+					Name:       e.Name,
+					Unit:       e.Unit,
+					Group:      e.Group,
+					Value:      val,
+					Decimals:   e.Decimals,
+					StaleAfter: e.StaleAfter,
+				})
 			}
-			c.store.SetSensor(state.Sensor{
-				Topic: topic.Topic, Name: topic.Name, Unit: topic.Unit,
-				Group: topic.Group, Value: val, StaleAfter: topic.StaleAfter,
-			})
 		})
 	}
 }

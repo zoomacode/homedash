@@ -2,6 +2,7 @@ package templates
 
 import (
 	"sort"
+	"strconv"
 	"time"
 	"github.com/zoomacode/homedash/internal/state"
 )
@@ -19,7 +20,7 @@ templ Sensors(snap state.Snapshot) {
 					for _, sensor := range groupSensors(snap, group) {
 						<li>
 							<span class="name">{ sensor.Name }</span>
-							<span class="value">{ sensor.Value }{ sensor.Unit }</span>
+							<span class="value">{ formatValue(sensor) }{ sensor.Unit }</span>
 							if isStale(sensor) {
 								<span class="stale">stale</span>
 							}
@@ -53,6 +54,14 @@ func groupSensors(s state.Snapshot, group string) []state.Sensor {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out
+}
+
+func formatValue(s state.Sensor) string {
+	f, err := strconv.ParseFloat(s.Value, 64)
+	if err != nil {
+		return s.Value
+	}
+	return strconv.FormatFloat(f, 'f', s.Decimals, 64)
 }
 
 func isStale(s state.Sensor) bool {

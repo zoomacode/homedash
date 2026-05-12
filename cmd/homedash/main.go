@@ -47,7 +47,11 @@ func main() {
 	go wp.Run(ctx)
 
 	mc := mqttsub.New(mqttsub.Config{
-		Broker: cfg.MQTT.Broker, ClientID: cfg.MQTT.ClientID, Topics: cfg.MQTT.Topics,
+		Broker:   cfg.MQTT.Broker,
+		ClientID: cfg.MQTT.ClientID,
+		Username: cfg.MQTT.Username,
+		Password: cfg.MQTT.Password,
+		Topics:   cfg.MQTT.Topics,
 	}, st)
 	if err := mc.Start(ctx); err != nil {
 		log.Printf("mqtt: %v", err)

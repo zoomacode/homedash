@@ -54,7 +54,7 @@ func TestIndex_RendersClock(t *testing.T) {
 
 func TestIndex_RendersSensors(t *testing.T) {
 	st := state.New()
-	st.SetSensor(state.Sensor{Topic: "sensors/temp", Name: "Outdoor Temp", Unit: "°C", Group: "outdoor", Value: "21.5"})
+	st.SetSensor(state.Sensor{Topic: "sensors/temp", Name: "Outdoor Temp", Unit: "°C", Group: "outdoor", Value: "21.5", Decimals: 1})
 	srv := New(st, nil, 8)
 	rr := httptest.NewRecorder()
 	srv.Handler().ServeHTTP(rr, httptest.NewRequest("GET", "/", nil))

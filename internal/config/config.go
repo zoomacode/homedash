@@ -33,11 +33,14 @@ type Location struct {
 type MQTT struct {
 	Broker   string  `yaml:"broker"`
 	ClientID string  `yaml:"client_id"`
+	Username string  `yaml:"-"` // from env MQTT_USERNAME
+	Password string  `yaml:"-"` // from env MQTT_PASSWORD
 	Topics   []Topic `yaml:"topics"`
 }
 
 type Topic struct {
 	Topic         string        `yaml:"topic"`
+	Field         string        `yaml:"field"` // optional dotted JSON path, e.g. "temperature" or "particles.p25um"
 	Name          string        `yaml:"name"`
 	Unit          string        `yaml:"unit"`
 	Group         string        `yaml:"group"`
@@ -99,5 +102,9 @@ func Load(path string) (*Config, error) {
 	if cfg.ICloud.User == "" || cfg.ICloud.AppPassword == "" {
 		return nil, fmt.Errorf("ICLOUD_USER and ICLOUD_APP_PASSWORD env vars are required")
 	}
+
+	cfg.MQTT.Username = os.Getenv("MQTT_USERNAME")
+	cfg.MQTT.Password = os.Getenv("MQTT_PASSWORD")
+
 	return &cfg, nil
 }

@@ -30,8 +30,10 @@ type DayForecast struct {
 }
 
 type Sensor struct {
+	Key                      string // unique storage key; defaults to Topic when empty
 	Topic, Name, Unit, Group string
 	Value                    string
+	Decimals                 int // fractional digits for numeric values
 	UpdatedAt                time.Time
 	StaleAfter               time.Duration
 }
@@ -124,11 +126,14 @@ func (s *Store) SetWeather(w Weather) {
 
 func (s *Store) SetSensor(sensor Sensor) {
 	sensor.UpdatedAt = time.Now()
+	if sensor.Key == "" {
+		sensor.Key = sensor.Topic
+	}
 	s.update(func(sn *Snapshot) {
 		if sn.Sensors == nil {
 			sn.Sensors = map[string]Sensor{}
 		}
-		sn.Sensors[sensor.Topic] = sensor
+		sn.Sensors[sensor.Key] = sensor
 	})
 	s.notify("sensors")
 }

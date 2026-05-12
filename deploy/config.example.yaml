@@ -10,19 +10,34 @@ http:
 mqtt:
   broker: "tcp://localhost:1883"
   client_id: "homedash"
+  # Credentials are loaded from MQTT_USERNAME / MQTT_PASSWORD in secrets.env.
+  #
+  # Each entry maps one (topic, field) -> one sensor row. Multiple entries
+  # may share the same topic; the client subscribes once and fans the JSON
+  # payload out by `field` (dotted path, e.g. "particles.p25um").
+  # Omit `field` if the payload is a bare number / string or a JSON object
+  # whose value lives under a top-level "value" key.
   topics:
-    - topic: "weather/outdoor/temp"
+    - topic: "funhouse/state"
+      field: "temperature"
+      name: "Temperature"
+      unit: "°C"
+      group: "indoor"
+      decimals: 1
+      stale_after: "10m"
+    - topic: "funhouse/state"
+      field: "humidity"
+      name: "Humidity"
+      unit: "%"
+      group: "indoor"
+      decimals: 0
+      stale_after: "10m"
+    - topic: "sensors/outdoor/temp"
       name: "Outdoor Temp"
       unit: "°C"
       group: "outdoor"
       decimals: 1
       stale_after: "5m"
-    - topic: "sensors/livingroom/humidity"
-      name: "Living Room Humidity"
-      unit: "%"
-      group: "indoor"
-      decimals: 0
-      stale_after: "10m"
 
 calendars:
   poll_minutes: 15
