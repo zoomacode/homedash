@@ -12,7 +12,7 @@ templ Weather(w state.Weather) {
 		hx-swap="outerHTML">
 		<h2>Weather</h2>
 		if w.UpdatedAt.IsZero() {
-			<p>loading…</p>
+			<p class="empty">loading…</p>
 		} else {
 			<div class="now">
 				<span class="temp">{ fmt.Sprintf("%.1f°C", w.TempC) }</span>
@@ -21,8 +21,8 @@ templ Weather(w state.Weather) {
 			<div class="forecast">
 				for _, d := range w.Forecast {
 					<div class="day">
-						<div>{ d.Date.Format("Mon") }</div>
-						<div>{ fmt.Sprintf("%.0f° / %.0f°", d.HighC, d.LowC) }</div>
+						<div class="dow">{ d.Date.Format("Mon") }</div>
+						<div class="hl">{ fmt.Sprintf("%.0f° / %.0f°", d.HighC, d.LowC) }</div>
 					</div>
 				}
 			</div>

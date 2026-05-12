@@ -12,7 +12,7 @@ templ Photos(photos []state.Photo, intervalSeconds int) {
 		hx-swap="outerHTML">
 		<h2>Photos</h2>
 		if len(photos) == 0 {
-			<p>no photos yet</p>
+			<p class="empty">no photos yet</p>
 		} else {
 			<div class="slideshow">
 				for i, p := range photos {

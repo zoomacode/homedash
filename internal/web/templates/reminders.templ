@@ -3,7 +3,7 @@ package templates
 import "github.com/zoomacode/homedash/internal/state"
 
 templ ReminderItem(r state.Reminder) {
-	<li id={ "rem-" + r.UID }>
+	<li id={ "rem-" + r.UID } class={ templ.KV("done", r.Done) }>
 		<form
 			hx-post={ "/reminders/" + r.UID + "/toggle" }
 			hx-swap="outerHTML"
@@ -22,10 +22,14 @@ templ Reminders(items []state.Reminder) {
 		hx-trigger="sse:reminders"
 		hx-swap="outerHTML">
 		<h2>Reminders</h2>
-		<ul>
-			for _, r := range items {
-				@ReminderItem(r)
-			}
-		</ul>
+		if len(items) == 0 {
+			<p class="empty">all caught up</p>
+		} else {
+			<ul>
+				for _, r := range items {
+					@ReminderItem(r)
+				}
+			</ul>
+		}
 	</section>
 }

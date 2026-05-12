@@ -8,13 +8,17 @@ templ News(items []state.NewsItem) {
 		hx-trigger="sse:news"
 		hx-swap="outerHTML">
 		<h2>News</h2>
-		<ul>
-			for _, n := range items {
-				<li>
-					<a href={ templ.URL(n.Link) } target="_blank" rel="noopener">{ n.Title }</a>
-					<span class="feed">{ n.Feed }</span>
-				</li>
-			}
-		</ul>
+		if len(items) == 0 {
+			<p class="empty">no news yet</p>
+		} else {
+			<ul>
+				for _, n := range items {
+					<li>
+						<a href={ templ.URL(n.Link) } target="_blank" rel="noopener">{ n.Title }</a>
+						<div class="feed">{ n.Feed }</div>
+					</li>
+				}
+			</ul>
+		}
 	</section>
 }

@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"sort"
 	"time"
 	"github.com/zoomacode/homedash/internal/state"
 )
@@ -11,34 +12,50 @@ templ Events(events []state.Event) {
 		hx-trigger="sse:events"
 		hx-swap="outerHTML">
 		<h2>Calendar</h2>
-		<div class="day">
-			<h3>Today</h3>
-			<ul>
-				for _, e := range eventsOn(events, today()) {
-					<li>
-						<span class="time">{ e.Start.Format("15:04") }</span>
-						<span class="title">{ e.Title }</span>
-					</li>
-				}
-			</ul>
-		</div>
-		<div class="day">
-			<h3>Tomorrow</h3>
-			<ul>
-				for _, e := range eventsOn(events, today().AddDate(0, 0, 1)) {
-					<li>
-						<span class="time">{ e.Start.Format("15:04") }</span>
-						<span class="title">{ e.Title }</span>
-					</li>
-				}
-			</ul>
+		<div class="week">
+			for _, day := range nextNineDays() {
+				@DayCell(day, eventsOn(events, day))
+			}
 		</div>
 	</section>
+}
+
+templ DayCell(day time.Time, events []state.Event) {
+	<div class={ "day-cell", templ.KV("is-today", isToday(day)) }>
+		<div class="day-head">
+			<span class="dow">{ day.Format("Mon") }</span>
+			<span class="dnum">{ day.Format("Jan 2") }</span>
+		</div>
+		if len(events) == 0 {
+			<div class="empty">—</div>
+		} else {
+			for _, e := range events {
+				<div class="event">
+					<span class="when">{ e.Start.Format("15:04") }</span>
+					<span class="title">{ e.Title }</span>
+				</div>
+			}
+		}
+	</div>
 }
 
 func today() time.Time {
 	now := time.Now()
 	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+}
+
+func nextNineDays() []time.Time {
+	t := today()
+	days := make([]time.Time, 9)
+	for i := range days {
+		days[i] = t.AddDate(0, 0, i)
+	}
+	return days
+}
+
+func isToday(d time.Time) bool {
+	t := today()
+	return d.Year() == t.Year() && d.YearDay() == t.YearDay()
 }
 
 func eventsOn(events []state.Event, day time.Time) []state.Event {
@@ -49,5 +66,6 @@ func eventsOn(events []state.Event, day time.Time) []state.Event {
 			out = append(out, e)
 		}
 	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Start.Before(out[j].Start) })
 	return out
 }

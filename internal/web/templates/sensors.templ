@@ -3,6 +3,7 @@ package templates
 import (
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 	"github.com/zoomacode/homedash/internal/state"
 )
@@ -13,20 +14,28 @@ templ Sensors(snap state.Snapshot) {
 		hx-trigger="sse:sensors"
 		hx-swap="outerHTML">
 		<h2>Sensors</h2>
+		if len(snap.Sensors) == 0 {
+			<p class="empty">no sensor readings yet</p>
+		}
 		for _, group := range groupNames(snap) {
 			<div class="group">
 				<h3>{ group }</h3>
-				<ul>
+				<div class="tiles">
 					for _, sensor := range groupSensors(snap, group) {
-						<li>
-							<span class="name">{ sensor.Name }</span>
-							<span class="value">{ formatValue(sensor) }{ sensor.Unit }</span>
+						<div class={ "tile", levelClass(sensor), templ.KV("stale", isStale(sensor)) }>
+							<div class="name">{ sensor.Name }</div>
+							<div class="value">
+								{ formatValue(sensor) }
+								if sensor.Unit != "" {
+									<span class="unit">{ sensor.Unit }</span>
+								}
+							</div>
 							if isStale(sensor) {
-								<span class="stale">stale</span>
+								<span class="stale-badge">stale</span>
 							}
-						</li>
+						</div>
 					}
-				</ul>
+				</div>
 			</div>
 		}
 	</section>
@@ -62,6 +71,53 @@ func formatValue(s state.Sensor) string {
 		return s.Value
 	}
 	return strconv.FormatFloat(f, 'f', s.Decimals, 64)
+}
+
+// levelClass returns a CSS class name based on the sensor's name and value:
+//   level-good (green) / level-ok (yellow) / level-warn (orange) / level-bad (red)
+// Empty string means no color band.
+func levelClass(s state.Sensor) string {
+	f, err := strconv.ParseFloat(s.Value, 64)
+	if err != nil {
+		return ""
+	}
+	switch strings.ToLower(s.Name) {
+	case "air quality":
+		// US AQI scale (lower is better).
+		switch {
+		case f <= 50:
+			return "level-good"
+		case f <= 100:
+			return "level-ok"
+		case f <= 150:
+			return "level-warn"
+		default:
+			return "level-bad"
+		}
+	case "humidity":
+		// Indoor comfort: 30-60% ideal; 20-30 or 60-70 ok; outside that warn.
+		switch {
+		case f >= 30 && f <= 60:
+			return "level-good"
+		case f >= 20 && f <= 70:
+			return "level-ok"
+		case f >= 15 && f <= 75:
+			return "level-warn"
+		default:
+			return "level-bad"
+		}
+	case "pressure":
+		// Sea-level normal ~1013 hPa. Tight band = normal, wider = caution.
+		switch {
+		case f >= 1005 && f <= 1025:
+			return "level-good"
+		case f >= 995 && f <= 1035:
+			return "level-ok"
+		default:
+			return "level-warn"
+		}
+	}
+	return ""
 }
 
 func isStale(s state.Sensor) bool {

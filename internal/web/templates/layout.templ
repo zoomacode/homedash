@@ -14,10 +14,20 @@ templ Layout(title string) {
 		<meta name="viewport" content="width=device-width,initial-scale=1"/>
 		<title>{ title }</title>
 		<link rel="stylesheet" href="/static/styles.css"/>
+		@templ.Raw(`<script>
+(function(){try{
+  var s=localStorage.getItem("theme");
+  if(s!=="light"&&s!=="dark")
+    s=window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";
+  document.documentElement.setAttribute("data-theme",s);
+}catch(_){document.documentElement.setAttribute("data-theme","dark");}})();
+</script>`)
 		<script src="/static/htmx.min.js" defer></script>
 		<script src="/static/htmx-sse.js" defer></script>
+		<script src="/static/theme.js" defer></script>
 	</head>
 	<body hx-ext="sse" sse-connect="/events">
+		<button id="theme-toggle" type="button" aria-label="Toggle theme">☀</button>
 		<main>
 			{ children... }
 		</main>

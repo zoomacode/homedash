@@ -3,11 +3,15 @@
 package caldav
 
 import (
+	"bytes"
 	"context"
+	"encoding/xml"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/emersion/go-ical"
@@ -36,6 +40,7 @@ type Client struct {
 	store          *state.Store
 	httpClient     webdav.HTTPClient
 	endpoint       string
+	logOnce        sync.Once
 }
 
 // New constructs a CalDAV client that will poll the given calendars and
@@ -88,6 +93,8 @@ func (c *Client) pollOnce(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	c.logCalendars(calendars)
 
 	now := time.Now()
 	horizon := now.Add(14 * 24 * time.Hour)
@@ -156,13 +163,25 @@ func (c *Client) RunEvents(ctx context.Context, every time.Duration) {
 func (c *Client) fetchEvents(ctx context.Context, cli *caldavlib.Client, path string, start, end time.Time) ([]state.Event, error) {
 	query := &caldavlib.CalendarQuery{
 		CompRequest: caldavlib.CalendarCompRequest{
-			Name:     ical.CompCalendar,
-			AllProps: false,
+			Name:  ical.CompCalendar,
+			Props: []string{"VERSION", "PRODID"},
+			// iCloud quirk: <allprop/> returns empty VEVENTs, so list
+			// the props we need explicitly.
 			Comps: []caldavlib.CalendarCompRequest{
 				{
-					Name:     ical.CompEvent,
-					AllProps: true,
+					Name: ical.CompEvent,
+					Props: []string{
+						"UID", "SUMMARY", "DESCRIPTION", "LOCATION",
+						"DTSTART", "DTEND", "DURATION",
+						"RECURRENCE-ID", "STATUS", "CATEGORIES", "TRANSP",
+					},
 				},
+			},
+			// Ask the server to expand RRULEs into individual instances
+			// within [start, end) so we get one event per occurrence.
+			Expand: &caldavlib.CalendarExpandRequest{
+				Start: start,
+				End:   end,
 			},
 		},
 		CompFilter: caldavlib.CompFilter{
@@ -203,56 +222,144 @@ func (c *Client) fetchEvents(ctx context.Context, cli *caldavlib.Client, path st
 	return events, nil
 }
 
-// fetchReminders queries a calendar path for all VTODO components.
-func (c *Client) fetchReminders(ctx context.Context, cli *caldavlib.Client, path string) ([]state.Reminder, error) {
-	query := &caldavlib.CalendarQuery{
-		CompRequest: caldavlib.CalendarCompRequest{
-			Name:     ical.CompCalendar,
-			AllProps: false,
-			Comps: []caldavlib.CalendarCompRequest{
-				{
-					Name:     ical.CompToDo,
-					AllProps: true,
-				},
-			},
-		},
-		CompFilter: caldavlib.CompFilter{
-			Name: ical.CompCalendar,
-			Comps: []caldavlib.CompFilter{
-				{
-					Name: ical.CompToDo,
-				},
-			},
-		},
-	}
+// reminderQuery is the REPORT body sent to fetch every VTODO in a calendar.
+// We ask only for the props we use and avoid <allprop/> because of the
+// same iCloud quirk that affects events.
+const reminderQuery = `<?xml version="1.0" encoding="UTF-8"?>
+<calendar-query xmlns="urn:ietf:params:xml:ns:caldav" xmlns:d="DAV:">
+  <d:prop>
+    <d:getetag/>
+    <calendar-data>
+      <comp name="VCALENDAR">
+        <prop name="VERSION"/>
+        <prop name="PRODID"/>
+        <comp name="VTODO">
+          <prop name="UID"/>
+          <prop name="SUMMARY"/>
+          <prop name="STATUS"/>
+        </comp>
+      </comp>
+    </calendar-data>
+  </d:prop>
+  <filter>
+    <comp-filter name="VCALENDAR">
+      <comp-filter name="VTODO"/>
+    </comp-filter>
+  </filter>
+</calendar-query>`
 
-	objects, err := cli.QueryCalendar(ctx, path, query)
+// multistatusResp is a minimal subset of the WebDAV REPORT response we need
+// to extract calendar-data CDATA. Local-name matching lets us ignore the
+// DAV: / caldav: namespace split.
+type multistatusResp struct {
+	XMLName   xml.Name       `xml:"multistatus"`
+	Responses []responseElem `xml:"response"`
+}
+type responseElem struct {
+	Href      string         `xml:"href"`
+	Propstats []propstatElem `xml:"propstat"`
+}
+type propstatElem struct {
+	Status string `xml:"status"`
+	Prop   struct {
+		CalData []byte `xml:"calendar-data"`
+	} `xml:"prop"`
+}
+
+// fetchReminders queries a calendar path for all VTODO components using a
+// raw REPORT so we can tolerate iCloud including the collection itself in
+// the multistatus with a 404 on calendar-data (go-webdav errors out on
+// that, which would mask all the real VTODO entries).
+func (c *Client) fetchReminders(ctx context.Context, _ *caldavlib.Client, path string) ([]state.Reminder, error) {
+	url := strings.TrimRight(c.endpoint, "/") + path
+	req, err := http.NewRequestWithContext(ctx, "REPORT", url, strings.NewReader(reminderQuery))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/xml; charset=utf-8")
+	req.Header.Set("Depth", "1")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusMultiStatus && resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("REPORT %s: %s", path, resp.Status)
+	}
+	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
+	var ms multistatusResp
+	if err := xml.Unmarshal(raw, &ms); err != nil {
+		return nil, fmt.Errorf("parse multistatus: %w", err)
+	}
+
 	var reminders []state.Reminder
-	for _, obj := range objects {
-		if obj.Data == nil {
-			continue
-		}
-		for _, child := range obj.Data.Children {
-			if child.Name != ical.CompToDo {
+	for _, r := range ms.Responses {
+		for _, ps := range r.Propstats {
+			if !strings.Contains(ps.Status, " 200 ") {
 				continue
 			}
-			uid := getProp(child, ical.PropUID)
-			title := getProp(child, ical.PropSummary)
-			statusVal := getProp(child, ical.PropStatus)
-			done := strings.EqualFold(statusVal, "COMPLETED")
-			reminders = append(reminders, state.Reminder{
-				UID:   uid,
-				Title: title,
-				Done:  done,
-				Path:  obj.Path,
-			})
+			if len(ps.Prop.CalData) == 0 {
+				continue
+			}
+			cal, err := ical.NewDecoder(bytes.NewReader(ps.Prop.CalData)).Decode()
+			if err != nil {
+				continue
+			}
+			for _, child := range cal.Children {
+				if child.Name != ical.CompToDo {
+					continue
+				}
+				uid := getProp(child, ical.PropUID)
+				title := getProp(child, ical.PropSummary)
+				if title == "" || isApplePlaceholderReminder(title) {
+					continue
+				}
+				statusVal := getProp(child, ical.PropStatus)
+				done := strings.EqualFold(statusVal, "COMPLETED")
+				reminders = append(reminders, state.Reminder{
+					UID:   uid,
+					Title: title,
+					Done:  done,
+					Path:  r.Href,
+				})
+			}
 		}
 	}
 	return reminders, nil
+}
+
+// logCalendars emits a one-shot diagnostic line listing every calendar
+// the server returned and which of those matched the configured event
+// and reminder names. Useful for the very common "I named the calendar
+// wrong in config.yaml" problem.
+func (c *Client) logCalendars(calendars []caldavlib.Calendar) {
+	c.logOnce.Do(func() {
+		log.Printf("caldav: %d calendars discovered:", len(calendars))
+		for _, cal := range calendars {
+			comps := cal.SupportedComponentSet
+			if len(comps) == 0 {
+				comps = []string{"(any)"}
+			}
+			log.Printf("caldav:   %-30q  supports=%v", cal.Name, comps)
+		}
+		log.Printf("caldav: event matches for %q", c.calNames)
+		log.Printf("caldav: reminder matches for %q", c.listName)
+	})
+}
+
+// isApplePlaceholderReminder reports whether the VTODO is one of Apple's
+// stub items that appear in legacy CalDAV reminder lists after the user
+// upgraded to the modern (non-CalDAV) Reminders sync. Filtering these out
+// prevents the dashboard from displaying "Where are my reminders?" etc.
+func isApplePlaceholderReminder(title string) bool {
+	t := strings.ToLower(title)
+	return strings.Contains(t, "upgraded these reminders") ||
+		strings.Contains(t, "where are my reminders")
 }
 
 // inCalNames reports whether name matches any configured calendar name

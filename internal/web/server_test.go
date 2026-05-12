@@ -60,7 +60,7 @@ func TestIndex_RendersSensors(t *testing.T) {
 	srv.Handler().ServeHTTP(rr, httptest.NewRequest("GET", "/", nil))
 
 	body := rr.Body.String()
-	if !strings.Contains(body, "Outdoor Temp") || !strings.Contains(body, "21.5°C") {
+	if !strings.Contains(body, "Outdoor Temp") || !strings.Contains(body, "21.5") || !strings.Contains(body, "°C") {
 		t.Errorf("body missing sensor: %s", body)
 	}
 }

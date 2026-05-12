@@ -4,10 +4,12 @@ import (
 	"context"
 	"flag"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -77,6 +79,9 @@ func main() {
 	go pp.Run(ctx)
 
 	log.Printf("homedash listening on %s", cfg.HTTP.Listen)
+	for _, u := range listenURLs(cfg.HTTP.Listen) {
+		log.Printf("  %s", u)
+	}
 	httpSrv := &http.Server{Addr: cfg.HTTP.Listen, Handler: srv.Handler()}
 	go func() {
 		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -88,6 +93,38 @@ func main() {
 	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelShutdown()
 	_ = httpSrv.Shutdown(shutdownCtx)
+}
+
+// listenURLs returns clickable URLs derived from an HTTP listen string like
+// ":8080" or "0.0.0.0:8080" — always localhost, plus the LAN IP when the
+// listener is bound to a wildcard address.
+func listenURLs(listen string) []string {
+	host, port, err := net.SplitHostPort(strings.TrimSpace(listen))
+	if err != nil {
+		return []string{"http://" + listen}
+	}
+	urls := []string{"http://localhost:" + port}
+	bindAll := host == "" || host == "0.0.0.0" || host == "::"
+	if bindAll {
+		if ip := outboundIP(); ip != "" {
+			urls = append(urls, "http://"+ip+":"+port)
+		}
+	} else if host != "127.0.0.1" && host != "localhost" && host != "::1" {
+		urls = append(urls, "http://"+host+":"+port)
+	}
+	return urls
+}
+
+// outboundIP returns the IPv4 the kernel would use to reach the public
+// internet, without actually sending any packets. Empty string if no
+// route is available.
+func outboundIP() string {
+	conn, err := net.Dial("udp4", "8.8.8.8:80")
+	if err != nil {
+		return ""
+	}
+	defer conn.Close()
+	return conn.LocalAddr().(*net.UDPAddr).IP.String()
 }
 
 func stateDir() string {

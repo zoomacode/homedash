@@ -52,7 +52,7 @@ func Photos(photos []state.Photo, intervalSeconds int) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if len(photos) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<p>no photos yet</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<p class=\"empty\">no photos yet</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
