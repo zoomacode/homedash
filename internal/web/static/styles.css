@@ -87,10 +87,22 @@
 * { box-sizing: border-box; }
 
 html, body { height: 100%; }
+/* Prefer the dynamic viewport so the dashboard tracks Safari's URL bar
+   collapsing/expanding on iPad. Fallback height:100% above keeps older
+   browsers from breaking. */
+@supports (height: 100dvh) {
+  html, body { height: 100dvh; }
+}
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   margin: 0;
-  padding: var(--pad);
+  /* Pad with safe-area insets so the dashboard clears the iPad rounded
+     corners / notch when launched as a Home Screen app (standalone). */
+  padding:
+    max(var(--pad), env(safe-area-inset-top))
+    max(var(--pad), env(safe-area-inset-right))
+    max(var(--pad), env(safe-area-inset-bottom))
+    max(var(--pad), env(safe-area-inset-left));
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
@@ -121,6 +133,7 @@ main {
 
 section {
   min-height: 0; /* required so flex children inside can shrink + scroll */
+  overflow: hidden; /* clip stray overflow so cards don't bleed into the next row */
 }
 
 section {
@@ -201,7 +214,14 @@ ul { list-style: none; padding: 0; margin: 0; }
 #weather .temp.level-warmish { color: var(--temp-warmish); }
 #weather .temp.level-hot     { color: var(--temp-hot); }
 #weather .temp.level-boiling { color: var(--temp-boiling); }
-#weather .forecast { display: grid; grid-template-columns: repeat(auto-fit, minmax(4rem, 1fr)); gap: 0.5rem; }
+/* Open-Meteo returns 5 days; force a single row so columns shrink to fit
+   instead of wrapping the last day below the card. */
+#weather .forecast {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 0.4rem;
+}
 #weather .day {
   background: var(--surface-2);
   border-radius: var(--radius-sm);
@@ -212,45 +232,55 @@ ul { list-style: none; padding: 0; margin: 0; }
 #weather .day .hl { font-weight: 600; }
 
 /* ---------- Sensors (dashboard tiles) ---------- */
-#sensors .group { margin-top: 0.75rem; }
+#sensors {
+  display: flex;
+  flex-direction: column;
+}
+#sensors .groups {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#sensors .group { margin-top: 0.5rem; }
 #sensors .group:first-of-type { margin-top: 0; }
 #sensors .group > h3 {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.35rem 0;
 }
 #sensors .tiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.4rem;
+  gap: 0.35rem;
 }
 #sensors .tile {
   background: var(--surface-2);
   border-radius: var(--radius-sm);
-  padding: 0.5rem 0.55rem;
+  padding: 0.3rem 0.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
-  min-height: 3.8rem;
+  gap: 0;
+  min-height: 0;
   position: relative;
+  line-height: 1.05;
 }
 #sensors .tile .name {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
 }
 #sensors .tile .value {
-  font-size: 1.35rem;
+  font-size: 1.05rem;
   font-weight: 600;
   letter-spacing: -0.02em;
-  line-height: 1.1;
   margin-top: auto;
 }
-#sensors .tile .unit { font-size: 0.75rem; color: var(--text-muted); margin-left: 0.15rem; }
+#sensors .tile .unit { font-size: 0.7rem; color: var(--text-muted); margin-left: 0.15rem; }
 #sensors .tile.stale .value { color: var(--text-muted); }
 
 #sensors .tile.level-good { background: var(--level-good-bg); }

@@ -1,0 +1,10 @@
+{
+  "name": "homedash",
+  "short_name": "homedash",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0e1014",
+  "theme_color": "#0e1014"
+}

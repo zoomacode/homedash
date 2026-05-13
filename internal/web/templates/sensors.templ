@@ -17,27 +17,29 @@ templ Sensors(snap state.Snapshot) {
 		if len(snap.Sensors) == 0 {
 			<p class="empty">no sensor readings yet</p>
 		}
-		for _, group := range groupNames(snap) {
-			<div class="group">
-				<h3>{ group }</h3>
-				<div class="tiles">
-					for _, sensor := range groupSensors(snap, group) {
-						<div class={ "tile", levelClass(sensor), templ.KV("stale", isStale(sensor)) }>
-							<div class="name">{ sensor.Name }</div>
-							<div class="value">
-								{ formatValue(sensor) }
-								if sensor.Unit != "" {
-									<span class="unit">{ sensor.Unit }</span>
+		<div class="groups">
+			for _, group := range groupNames(snap) {
+				<div class="group">
+					<h3>{ group }</h3>
+					<div class="tiles">
+						for _, sensor := range groupSensors(snap, group) {
+							<div class={ "tile", levelClass(sensor), templ.KV("stale", isStale(sensor)) }>
+								<div class="name">{ sensor.Name }</div>
+								<div class="value">
+									{ formatValue(sensor) }
+									if sensor.Unit != "" {
+										<span class="unit">{ sensor.Unit }</span>
+									}
+								</div>
+								if isStale(sensor) {
+									<span class="stale-badge">stale</span>
 								}
 							</div>
-							if isStale(sensor) {
-								<span class="stale-badge">stale</span>
-							}
-						</div>
-					}
+						}
+					</div>
 				</div>
-			</div>
-		}
+			}
+		</div>
 	</section>
 }
 
