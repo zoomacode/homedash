@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -161,9 +162,11 @@ func (s *Server) handleToggleReminder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.cal.ToggleReminder(r.Context(), uid, done); err != nil {
+		log.Printf("reminders: toggle %s done=%v: %v", uid, done, err)
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
+	log.Printf("reminders: toggle %s done=%v: ok", uid, done)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	full := findReminder(snap.Reminders, uid)

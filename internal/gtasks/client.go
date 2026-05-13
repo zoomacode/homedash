@@ -162,17 +162,14 @@ func (c *Client) ToggleReminder(ctx context.Context, uid string, done bool) erro
 	if err != nil {
 		return err
 	}
-	t, err := svc.Tasks.Get(listID, uid).Do()
-	if err != nil {
-		return err
-	}
+	// Use Patch with a minimal Task so we only touch Status. Going from
+	// completed → needsAction via Update was tripping the SDK's check
+	// that a field in NullFields must have its zero value; Patch avoids
+	// the round-trip and the field-clearing dance entirely.
+	patch := &tasks.Task{Status: "needsAction"}
 	if done {
-		t.Status = "completed"
-	} else {
-		t.Status = "needsAction"
-		// Google requires NullFields to actually clear `completed`.
-		t.NullFields = append(t.NullFields, "Completed")
+		patch.Status = "completed"
 	}
-	_, err = svc.Tasks.Update(listID, uid, t).Do()
+	_, err = svc.Tasks.Patch(listID, uid, patch).Do()
 	return err
 }
