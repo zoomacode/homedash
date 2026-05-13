@@ -12,9 +12,8 @@ templ Page(snap state.Snapshot, now time.Time, slideshowSeconds int) {
 		@Clock(now)
 		@Sensors(snap)
 		@Weather(snap.Weather)
+		@Photos(snap.Photos, slideshowSeconds)
 		@Reminders(snap.Reminders)
 		@Events(snap.Events)
-		@Photos(snap.Photos, slideshowSeconds)
-		@News(snap.News)
 	}
 }

@@ -39,7 +39,7 @@ func Events(events []state.Event) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		for _, day := range nextNineDays() {
+		for _, day := range nextTwelveDays() {
 			templ_7745c5c3_Err = DayCell(day, eventsOn(events, day)).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -174,9 +174,9 @@ func today() time.Time {
 	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 }
 
-func nextNineDays() []time.Time {
+func nextTwelveDays() []time.Time {
 	t := today()
-	days := make([]time.Time, 9)
+	days := make([]time.Time, 12)
 	for i := range days {
 		days[i] = t.AddDate(0, 0, i)
 	}

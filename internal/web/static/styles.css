@@ -104,10 +104,10 @@ main {
 }
 
 /* Target device is iPad Air in portrait (~820px wide): a two-column grid.
-   The clock spans the full row at the top so its date+time can sit
-   horizontally and stay short. */
+   Clock and Calendar span the full row so the calendar's day cells get
+   the horizontal room they need. */
 @media (min-width: 700px)  { main { grid-template-columns: 1fr 1fr; } }
-@media (min-width: 700px)  { #clock { grid-column: 1 / -1; } }
+@media (min-width: 700px)  { #clock, #events { grid-column: 1 / -1; } }
 
 section {
   background: var(--surface);
@@ -274,10 +274,10 @@ ul { list-style: none; padding: 0; margin: 0; }
 #sensors .empty { color: var(--text-muted); font-size: 0.9rem; }
 
 /* ---------- Calendar / Events ---------- */
-/* 3×3 grid of day cards — 9 days, today first. */
+/* 4×3 grid of day cards — 12 days, today first. */
 #events .week {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.5rem;
 }
 @media (max-width: 600px) {

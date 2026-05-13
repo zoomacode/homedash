@@ -34,11 +34,6 @@ func (s *Server) handleRemindersFragment(w http.ResponseWriter, r *http.Request)
 	_ = templates.Reminders(s.store.Snapshot().Reminders).Render(r.Context(), w)
 }
 
-func (s *Server) handleNewsFragment(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = templates.News(s.store.Snapshot().News).Render(r.Context(), w)
-}
-
 func (s *Server) handlePhoto(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	for _, p := range s.store.Snapshot().Photos {

@@ -43,7 +43,6 @@ func (s *Server) routes() {
 	r.Get("/fragment/sensors", s.handleSensorsFragment)
 	r.Get("/fragment/events", s.handleEventsFragment)
 	r.Get("/fragment/reminders", s.handleRemindersFragment)
-	r.Get("/fragment/news", s.handleNewsFragment)
 	r.Get("/photo/{id}", s.handlePhoto)
 	r.Get("/fragment/photos", s.handlePhotosFragment)
 	r.Post("/reminders/{uid}/toggle", s.handleToggleReminder)
