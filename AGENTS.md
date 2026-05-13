@@ -107,6 +107,28 @@ the original Google migration (`c540c02`) are good references.
 - **iPad Safari caches static assets aggressively**. The server sends
   `Cache-Control: no-store, must-revalidate` for `/static/*` so a
   redeploy doesn't leave the iPad on stale CSS/JS. Keep that header.
+- **MQTT `tok.Wait()` blocks main() forever** when `SetConnectRetry(true)`
+  is also on, because the connect token never resolves until a CONNACK
+  succeeds. `mqttsub.Start` uses `tok.WaitTimeout(5*time.Second)` and
+  returns `nil` on timeout — the background retry then handles
+  reconnection. Don't revert to an unbounded `Wait()`.
+- **MQTT clientID collisions cause reconnect storms.** Two processes
+  with the same clientID make the broker disconnect the older session
+  on every reconnect, per MQTT v3.1.1. `mqttsub.uniqueClientID` appends
+  a random suffix so the configured `mqtt.client_id` is treated as a
+  prefix. Don't disable this even for dev — Mac + Pi run concurrently
+  during development.
+- **The Pi binary can't resolve `.local` hostnames.** We build
+  `CGO_ENABLED=0` for static linking, so the pure-Go resolver talks
+  straight to `/etc/resolv.conf` and bypasses avahi/nss-mdns. Pi config
+  must point at `localhost` or an IP for the MQTT broker — even though
+  `getent hosts foo.local` succeeds at the shell.
+- **`/etc/homedash/config.yaml` paths must be absolute.** The systemd
+  unit's `WorkingDirectory=/var/lib/homedash` makes `./var/...`
+  resolve to `/var/lib/homedash/var/...` which doesn't exist. The
+  daemon logs the error and continues with that source disabled — easy
+  to miss. [deploy/config.example.yaml](deploy/config.example.yaml)
+  has the correct absolute paths; keep it that way.
 
 ## Don't
 
