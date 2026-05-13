@@ -1,7 +1,23 @@
+# Build artifacts
 /dist/
 /tmp/
+/homedash
+/homedash-arm64
 *.test
 *.out
-.env
+
+# Local config + secrets — never commit
+/config.yaml
 secrets.env
+.env
+
+# State (sqlite, photos cache, OAuth tokens)
 /var/
+
+# Agent / IDE working dirs
+.claude/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
