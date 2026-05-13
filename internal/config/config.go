@@ -19,7 +19,20 @@ type Config struct {
 	Weather   Weather   `yaml:"weather"`
 	RSS       RSS       `yaml:"rss"`
 	Photos    Photos    `yaml:"photos"`
+	Google    Google    `yaml:"google"`
 	ICloud    ICloud    `yaml:"-"` // from env
+}
+
+// Google is the per-account configuration for Google Tasks + Photos.
+// Client ID and Secret are loaded from secrets.env. TokenFile is the
+// on-disk path where the user's refresh-capable token is cached after
+// running `homedash auth-google` once.
+type Google struct {
+	TokenFile        string   `yaml:"token_file"`
+	TasksListName    string   `yaml:"tasks_list"`
+	CalendarsInclude []string `yaml:"calendars_include"`
+	ClientID         string   `yaml:"-"`
+	ClientSecret     string   `yaml:"-"`
 }
 
 type HTTP struct {
@@ -105,6 +118,9 @@ func Load(path string) (*Config, error) {
 
 	cfg.MQTT.Username = os.Getenv("MQTT_USERNAME")
 	cfg.MQTT.Password = os.Getenv("MQTT_PASSWORD")
+
+	cfg.Google.ClientID = os.Getenv("GOOGLE_OAUTH_CLIENT_ID")
+	cfg.Google.ClientSecret = os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET")
 
 	return &cfg, nil
 }

@@ -10,7 +10,23 @@ templ Photos(photos []state.Photo, intervalSeconds int) {
 		hx-get="/fragment/photos"
 		hx-trigger="sse:photos"
 		hx-swap="outerHTML">
-		<h2>Photos</h2>
+		<div class="photos-head">
+			<h2>Photos</h2>
+			<div class="photo-actions">
+				<button id="photos-next" type="button" class="upload-btn" title="Next photo" aria-label="Next photo">→</button>
+				<form class="photo-upload"
+					hx-post="/photos/upload"
+					hx-encoding="multipart/form-data"
+					hx-target="#photos"
+					hx-swap="outerHTML">
+					<label class="upload-btn">
+						<span>+ Add</span>
+						<input type="file" name="files" accept="image/*" multiple
+							onchange="this.form.requestSubmit()"/>
+					</label>
+				</form>
+			</div>
+		</div>
 		if len(photos) == 0 {
 			<p class="empty">no photos yet</p>
 		} else {

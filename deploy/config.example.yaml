@@ -60,4 +60,18 @@ photos:
   shared_album_url: "https://www.icloud.com/sharedalbum/#XXXXXXX"
   refresh_hours: 6
   cache_dir: "/var/lib/homedash/photos"
-  slideshow_seconds: 8
+  # How long each photo stays on screen, in seconds.
+  slideshow_seconds: 900
+
+google:
+  # Cached after running `homedash auth-google -config /etc/homedash/config.yaml`
+  # once on a machine with a browser. Then copy this file to the Pi.
+  token_file: "/var/lib/homedash/google_token.json"
+  # Set to Google Calendar titles to use Google instead of CalDAV for
+  # events. Empty = keep CalDAV (iCloud) calendar.
+  calendars_include: []
+  # Set to a Google Tasks list title to use Google instead of CalDAV
+  # for reminders. Empty = keep CalDAV reminders.
+  tasks_list: ""
+  # Photos: run `homedash pick-photos` once on a machine with a browser
+  # to fill photos.cache_dir from Google Photos via the Picker API.

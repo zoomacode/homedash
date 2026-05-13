@@ -129,8 +129,10 @@ func (c *Client) pollOnce(ctx context.Context) error {
 		}
 	}
 
-	c.store.SetEvents(events)
-	c.store.SetReminders(reminders)
+	c.store.SetEventsFromSource("icloud", events)
+	if c.listName != "" {
+		c.store.SetReminders(reminders)
+	}
 	return nil
 }
 

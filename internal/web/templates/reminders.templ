@@ -1,16 +1,32 @@
 package templates
 
-import "github.com/zoomacode/homedash/internal/state"
+import (
+	"sort"
+	"time"
+	"github.com/zoomacode/homedash/internal/state"
+)
 
 templ ReminderItem(r state.Reminder) {
-	<li id={ "rem-" + r.UID } class={ templ.KV("done", r.Done) }>
+	<li id={ "rem-" + r.UID } class={ "reminder", templ.KV("done", r.Done), templ.KV("overdue", isOverdue(r)) }>
 		<form
 			hx-post={ "/reminders/" + r.UID + "/toggle" }
 			hx-swap="outerHTML"
 			hx-target={ "#rem-" + r.UID }>
 			<label>
 				<input type="checkbox" name="done" if r.Done { checked }/>
-				<span class="title">{ r.Title }</span>
+				<div class="body">
+					<div class="title">{ r.Title }</div>
+					if !r.Due.IsZero() || r.Notes != "" {
+						<div class="meta">
+							if !r.Due.IsZero() {
+								<span class={ "due", templ.KV("due-overdue", isOverdue(r)), templ.KV("due-today", isDueToday(r)) }>{ formatDue(r.Due) }</span>
+							}
+							if r.Notes != "" {
+								<span class="notes">{ r.Notes }</span>
+							}
+						</div>
+					}
+				</div>
 			</label>
 		</form>
 	</li>
@@ -26,10 +42,80 @@ templ Reminders(items []state.Reminder) {
 			<p class="empty">all caught up</p>
 		} else {
 			<ul>
-				for _, r := range items {
+				for _, r := range sortReminders(items) {
 					@ReminderItem(r)
 				}
 			</ul>
 		}
 	</section>
+}
+
+// sortReminders puts overdue first, then due today, then by ascending
+// due date, then dateless reminders at the bottom. Within each bucket,
+// not-done items come before done items.
+func sortReminders(rs []state.Reminder) []state.Reminder {
+	out := append([]state.Reminder{}, rs...)
+	now := startOfToday()
+	rank := func(r state.Reminder) int {
+		if r.Done {
+			return 4
+		}
+		if r.Due.IsZero() {
+			return 3
+		}
+		if r.Due.Before(now) {
+			return 0
+		}
+		if isDueToday(r) {
+			return 1
+		}
+		return 2
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		ri, rj := rank(out[i]), rank(out[j])
+		if ri != rj {
+			return ri < rj
+		}
+		if !out[i].Due.IsZero() && !out[j].Due.IsZero() {
+			return out[i].Due.Before(out[j].Due)
+		}
+		return false
+	})
+	return out
+}
+
+func startOfToday() time.Time {
+	t := time.Now()
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+}
+
+func isOverdue(r state.Reminder) bool {
+	if r.Done || r.Due.IsZero() {
+		return false
+	}
+	return r.Due.Before(startOfToday())
+}
+
+func isDueToday(r state.Reminder) bool {
+	if r.Due.IsZero() {
+		return false
+	}
+	t := startOfToday()
+	return !r.Due.Before(t) && r.Due.Before(t.AddDate(0, 0, 1))
+}
+
+func formatDue(due time.Time) string {
+	today := startOfToday()
+	tomorrow := today.AddDate(0, 0, 1)
+	dayAfter := tomorrow.AddDate(0, 0, 1)
+	switch {
+	case due.Before(today):
+		return "Overdue · " + due.Format("Mon 2 Jan")
+	case !due.Before(today) && due.Before(tomorrow):
+		return "Today"
+	case !due.Before(tomorrow) && due.Before(dayAfter):
+		return "Tomorrow"
+	default:
+		return due.Format("Mon 2 Jan")
+	}
 }

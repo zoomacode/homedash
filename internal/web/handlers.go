@@ -2,12 +2,26 @@ package web
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/zoomacode/homedash/internal/state"
 	"github.com/zoomacode/homedash/internal/web/templates"
 )
+
+// maxUploadBytes caps a single multipart request to keep iPad uploads
+// from blowing out the kitchen Pi's memory. Per-file limit is the
+// in-memory threshold for ParseMultipartForm; everything beyond goes to
+// a temp file on disk.
+const maxUploadBytes = 200 << 20 // 200 MiB
 
 // ReminderToggler is the subset of the CalDAV client used by the toggle handler.
 type ReminderToggler interface {
@@ -50,6 +64,76 @@ func (s *Server) handlePhotosFragment(w http.ResponseWriter, r *http.Request) {
 	_ = templates.Photos(s.store.Snapshot().Photos, s.slideshowSeconds).Render(r.Context(), w)
 }
 
+// handlePhotosUpload accepts multipart/form-data with one or more image
+// files, writes each into the configured photos cache dir using an
+// "upload_" prefix (so re-running the Google Photos picker won't wipe
+// them), then triggers a rescan. The SSE notifier delivers the new
+// slideshow to all open dashboards.
+func (s *Server) handlePhotosUpload(w http.ResponseWriter, r *http.Request) {
+	if s.photosCacheDir == "" {
+		http.Error(w, "photos cache dir not configured", http.StatusServiceUnavailable)
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		http.Error(w, "parse multipart: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if r.MultipartForm == nil || len(r.MultipartForm.File["files"]) == 0 {
+		http.Error(w, "no files in field 'files'", http.StatusBadRequest)
+		return
+	}
+	if err := os.MkdirAll(s.photosCacheDir, 0o755); err != nil {
+		http.Error(w, "mkdir cache: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	saved := 0
+	for _, h := range r.MultipartForm.File["files"] {
+		ext := strings.ToLower(filepath.Ext(h.Filename))
+		switch ext {
+		case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic":
+		default:
+			continue
+		}
+		f, err := h.Open()
+		if err != nil {
+			continue
+		}
+		nameRand := make([]byte, 4)
+		_, _ = rand.Read(nameRand)
+		dest := filepath.Join(
+			s.photosCacheDir,
+			fmt.Sprintf("upload_%d_%s%s", time.Now().Unix(), hex.EncodeToString(nameRand), ext),
+		)
+		out, err := os.Create(dest + ".tmp")
+		if err != nil {
+			f.Close()
+			continue
+		}
+		if _, err := io.Copy(out, f); err != nil {
+			out.Close()
+			f.Close()
+			os.Remove(dest + ".tmp")
+			continue
+		}
+		out.Close()
+		f.Close()
+		if err := os.Rename(dest+".tmp", dest); err != nil {
+			os.Remove(dest + ".tmp")
+			continue
+		}
+		saved++
+	}
+
+	if s.photoRescanner != nil {
+		_ = s.photoRescanner.Once(r.Context())
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_ = templates.Photos(s.store.Snapshot().Photos, s.slideshowSeconds).Render(r.Context(), w)
+}
+
 func (s *Server) handleToggleReminder(w http.ResponseWriter, r *http.Request) {
 	if s.cal == nil {
 		http.Error(w, "calendar not configured", http.StatusServiceUnavailable)
@@ -75,14 +159,17 @@ func (s *Server) handleToggleReminder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = templates.ReminderItem(state.Reminder{UID: uid, Done: done, Title: titleFor(snap.Reminders, uid)}).Render(r.Context(), w)
+	full := findReminder(snap.Reminders, uid)
+	full.UID = uid
+	full.Done = done
+	_ = templates.ReminderItem(full).Render(r.Context(), w)
 }
 
-func titleFor(rs []state.Reminder, uid string) string {
+func findReminder(rs []state.Reminder, uid string) state.Reminder {
 	for _, r := range rs {
 		if r.UID == uid {
-			return r.Title
+			return r
 		}
 	}
-	return ""
+	return state.Reminder{}
 }

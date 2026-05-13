@@ -47,7 +47,7 @@ func Photos(photos []state.Photo, intervalSeconds int) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" hx-get=\"/fragment/photos\" hx-trigger=\"sse:photos\" hx-swap=\"outerHTML\"><h2>Photos</h2>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" hx-get=\"/fragment/photos\" hx-trigger=\"sse:photos\" hx-swap=\"outerHTML\"><div class=\"photos-head\"><h2>Photos</h2><div class=\"photo-actions\"><button id=\"photos-next\" type=\"button\" class=\"upload-btn\" title=\"Next photo\" aria-label=\"Next photo\">→</button><form class=\"photo-upload\" hx-post=\"/photos/upload\" hx-encoding=\"multipart/form-data\" hx-target=\"#photos\" hx-swap=\"outerHTML\"><label class=\"upload-btn\"><span>+ Add</span> <input type=\"file\" name=\"files\" accept=\"image/*\" multiple onchange=\"this.form.requestSubmit()\"></label></form></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -87,7 +87,7 @@ func Photos(photos []state.Photo, intervalSeconds int) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs("/photo/" + p.ID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/photos.templ`, Line: 19, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/photos.templ`, Line: 35, Col: 78}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {

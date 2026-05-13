@@ -2,6 +2,7 @@
 package state
 
 import (
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -47,6 +48,8 @@ type Reminder struct {
 	UID, Title string
 	Done       bool
 	Path       string
+	Notes      string    // optional body / details
+	Due        time.Time // optional; zero means no due date
 }
 type NewsItem struct {
 	GUID, Feed, Title, Link string
@@ -63,6 +66,9 @@ type Store struct {
 
 	mu   sync.Mutex
 	subs []chan Event2
+
+	eventsMu       sync.Mutex
+	eventsBySource map[string][]Event
 }
 
 func New() *Store {
@@ -139,8 +145,31 @@ func (s *Store) SetSensor(sensor Sensor) {
 	s.notify("sensors")
 }
 
+// SetEvents replaces the entire event list. Used by tests / single-source
+// callers. For multi-source merging use SetEventsFromSource.
 func (s *Store) SetEvents(ev []Event) {
-	s.update(func(sn *Snapshot) { sn.Events = ev })
+	s.SetEventsFromSource("default", ev)
+}
+
+// SetEventsFromSource records the events contributed by a named source
+// (e.g. "icloud", "google") and re-merges them with every other source's
+// most recent contribution. The merged list is time-sorted and replaces
+// Snapshot.Events.
+func (s *Store) SetEventsFromSource(source string, ev []Event) {
+	s.eventsMu.Lock()
+	if s.eventsBySource == nil {
+		s.eventsBySource = map[string][]Event{}
+	}
+	s.eventsBySource[source] = ev
+	merged := make([]Event, 0, len(ev))
+	for _, list := range s.eventsBySource {
+		merged = append(merged, list...)
+	}
+	s.eventsMu.Unlock()
+
+	sort.Slice(merged, func(i, j int) bool { return merged[i].Start.Before(merged[j].Start) })
+
+	s.update(func(sn *Snapshot) { sn.Events = merged })
 	s.notify("events")
 }
 

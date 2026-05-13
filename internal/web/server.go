@@ -2,6 +2,7 @@
 package web
 
 import (
+	"context"
 	"embed"
 	"io/fs"
 	"net/http"
@@ -15,15 +16,30 @@ import (
 //go:embed static
 var staticFS embed.FS
 
+// PhotoRescanner is the subset of the photos.Poller used by the upload
+// handler to refresh the slideshow after files land in the cache dir.
+type PhotoRescanner interface {
+	Once(ctx context.Context) error
+}
+
 type Server struct {
 	store            *state.Store
 	cal              ReminderToggler
 	slideshowSeconds int
+	photosCacheDir   string
+	photoRescanner   PhotoRescanner
 	router           *chi.Mux
 }
 
-func New(store *state.Store, cal ReminderToggler, slideshowSeconds int) *Server {
-	s := &Server{store: store, cal: cal, slideshowSeconds: slideshowSeconds, router: chi.NewRouter()}
+func New(store *state.Store, cal ReminderToggler, slideshowSeconds int, photosCacheDir string, photoRescanner PhotoRescanner) *Server {
+	s := &Server{
+		store:            store,
+		cal:              cal,
+		slideshowSeconds: slideshowSeconds,
+		photosCacheDir:   photosCacheDir,
+		photoRescanner:   photoRescanner,
+		router:           chi.NewRouter(),
+	}
 	s.routes()
 	return s
 }
@@ -45,6 +61,7 @@ func (s *Server) routes() {
 	r.Get("/fragment/reminders", s.handleRemindersFragment)
 	r.Get("/photo/{id}", s.handlePhoto)
 	r.Get("/fragment/photos", s.handlePhotosFragment)
+	r.Post("/photos/upload", s.handlePhotosUpload)
 	r.Post("/reminders/{uid}/toggle", s.handleToggleReminder)
 }
 
