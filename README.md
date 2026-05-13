@@ -4,6 +4,8 @@ A single-binary home dashboard built to live on an iPad Air in the kitchen.
 Renders the time, weather, indoor sensors, family calendar, reminders, and a
 photo slideshow on one page that stays current via server-sent events.
 
+![dashboard screenshot](docs/screenshot.png)
+
 ## What's on the dashboard
 
 - **Clock** — local time + date, ticks every second client-side.
