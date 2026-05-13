@@ -56,32 +56,39 @@ func (c *Client) Start(ctx context.Context) error {
 
 func (c *Client) onConnect(mc mqtt.Client) {
 	// Group entries by MQTT topic so a single payload can fan out into
-	// multiple sensors via different field selectors.
-	grouped := map[string][]config.Topic{}
-	for _, t := range c.cfg.Topics {
-		grouped[t.Topic] = append(grouped[t.Topic], t)
+	// multiple sensors via different field selectors. We also remember
+	// each entry's position in the config so the dashboard can render
+	// sensors in the order the user listed them.
+	type entry struct {
+		t     config.Topic
+		order int
+	}
+	grouped := map[string][]entry{}
+	for i, t := range c.cfg.Topics {
+		grouped[t.Topic] = append(grouped[t.Topic], entry{t: t, order: i})
 	}
 	for topic, entries := range grouped {
 		mc.Subscribe(topic, 0, func(_ mqtt.Client, m mqtt.Message) {
 			for _, e := range entries {
-				val, err := decodeValue(m.Payload(), e.Field)
+				val, err := decodeValue(m.Payload(), e.t.Field)
 				if err != nil {
-					log.Printf("mqtt decode %s field=%q: %v", m.Topic(), e.Field, err)
+					log.Printf("mqtt decode %s field=%q: %v", m.Topic(), e.t.Field, err)
 					continue
 				}
-				key := e.Topic
-				if e.Field != "" {
-					key = e.Topic + "#" + e.Field
+				key := e.t.Topic
+				if e.t.Field != "" {
+					key = e.t.Topic + "#" + e.t.Field
 				}
 				c.store.SetSensor(state.Sensor{
 					Key:        key,
-					Topic:      e.Topic,
-					Name:       e.Name,
-					Unit:       e.Unit,
-					Group:      e.Group,
+					Topic:      e.t.Topic,
+					Name:       e.t.Name,
+					Unit:       e.t.Unit,
+					Group:      e.t.Group,
 					Value:      val,
-					Decimals:   e.Decimals,
-					StaleAfter: e.StaleAfter,
+					Decimals:   e.t.Decimals,
+					Order:      e.order,
+					StaleAfter: e.t.StaleAfter,
 				})
 			}
 		})

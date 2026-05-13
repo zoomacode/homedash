@@ -63,7 +63,7 @@ func Page(snap state.Snapshot, now time.Time, slideshowSeconds int) templ.Compon
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = Weather(snap.Weather).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = Sensors(snap).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -71,7 +71,7 @@ func Page(snap state.Snapshot, now time.Time, slideshowSeconds int) templ.Compon
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = Sensors(snap).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = Weather(snap.Weather).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -79,7 +79,7 @@ func Page(snap state.Snapshot, now time.Time, slideshowSeconds int) templ.Compon
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = Events(snap.Events).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = Reminders(snap.Reminders).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -87,7 +87,7 @@ func Page(snap state.Snapshot, now time.Time, slideshowSeconds int) templ.Compon
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = Reminders(snap.Reminders).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = Events(snap.Events).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -95,7 +95,7 @@ func Page(snap state.Snapshot, now time.Time, slideshowSeconds int) templ.Compon
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = News(snap.News).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = Photos(snap.Photos, slideshowSeconds).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -103,7 +103,7 @@ func Page(snap state.Snapshot, now time.Time, slideshowSeconds int) templ.Compon
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = Photos(snap.Photos, slideshowSeconds).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = News(snap.News).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

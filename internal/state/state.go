@@ -34,6 +34,7 @@ type Sensor struct {
 	Topic, Name, Unit, Group string
 	Value                    string
 	Decimals                 int // fractional digits for numeric values
+	Order                    int // display order (config index)
 	UpdatedAt                time.Time
 	StaleAfter               time.Duration
 }

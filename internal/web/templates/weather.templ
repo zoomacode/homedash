@@ -15,7 +15,7 @@ templ Weather(w state.Weather) {
 			<p class="empty">loading…</p>
 		} else {
 			<div class="now">
-				<span class="temp">{ fmt.Sprintf("%.1f°C", w.TempC) }</span>
+				<span class={ "temp", TempLevelClass(w.TempC) }>{ fmt.Sprintf("%.1f°C", w.TempC) }</span>
 				<span class="feels">feels { fmt.Sprintf("%.0f°C", w.FeelsC) }</span>
 			</div>
 			<div class="forecast">

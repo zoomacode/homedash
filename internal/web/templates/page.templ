@@ -10,11 +10,11 @@ templ Page(snap state.Snapshot, now time.Time, slideshowSeconds int) {
 	@Layout("homedash") {
 		@AuthBanner(snap.ICloudAuthError)
 		@Clock(now)
-		@Weather(snap.Weather)
 		@Sensors(snap)
-		@Events(snap.Events)
+		@Weather(snap.Weather)
 		@Reminders(snap.Reminders)
-		@News(snap.News)
+		@Events(snap.Events)
 		@Photos(snap.Photos, slideshowSeconds)
+		@News(snap.News)
 	}
 }

@@ -4,8 +4,8 @@ import "time"
 
 templ Clock(now time.Time) {
 	<section id="clock">
-		<div class="date">{ now.Format("Mon 02 Jan 2006") }</div>
 		<div class="time">{ now.Format("15:04") }</div>
+		<div class="date">{ now.Format("Monday, 2 January 2006") }</div>
 	</section>
 	<script src="/static/clock.js" defer></script>
 }

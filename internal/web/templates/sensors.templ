@@ -61,7 +61,7 @@ func groupSensors(s state.Snapshot, group string) []state.Sensor {
 			out = append(out, sn)
 		}
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Order < out[j].Order })
 	return out
 }
 
@@ -82,6 +82,8 @@ func levelClass(s state.Sensor) string {
 		return ""
 	}
 	switch strings.ToLower(s.Name) {
+	case "temperature":
+		return TempLevelClass(f)
 	case "air quality":
 		// US AQI scale (lower is better).
 		switch {
@@ -118,6 +120,28 @@ func levelClass(s state.Sensor) string {
 		}
 	}
 	return ""
+}
+
+// TempLevelClass returns a temperature-band CSS class. Bands are tuned for
+// indoor + outdoor air in degrees Celsius and reused by the weather widget
+// so the dashboard's two thermometers stay color-consistent.
+func TempLevelClass(c float64) string {
+	switch {
+	case c < 10:
+		return "level-cold"
+	case c < 15:
+		return "level-chill"
+	case c < 20:
+		return "level-cool"
+	case c < 24:
+		return "level-perfect"
+	case c < 28:
+		return "level-warmish"
+	case c < 35:
+		return "level-hot"
+	default:
+		return "level-boiling"
+	}
 }
 
 func isStale(s state.Sensor) bool {
