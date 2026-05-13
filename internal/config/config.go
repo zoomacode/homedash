@@ -20,7 +20,16 @@ type Config struct {
 	RSS       RSS       `yaml:"rss"`
 	Photos    Photos    `yaml:"photos"`
 	Google    Google    `yaml:"google"`
+	Todoist   Todoist   `yaml:"todoist"`
 	ICloud    ICloud    `yaml:"-"` // from env
+}
+
+// Todoist surfaces a single Todoist project as another reminders source.
+// The API token comes from secrets.env; the project is matched by name
+// (case-insensitive) against the user's projects on first poll.
+type Todoist struct {
+	Project string `yaml:"project"`
+	Token   string `yaml:"-"` // from env TODOIST_TOKEN
 }
 
 // Google is the per-account configuration for Google Tasks + Photos.
@@ -121,6 +130,8 @@ func Load(path string) (*Config, error) {
 
 	cfg.Google.ClientID = os.Getenv("GOOGLE_OAUTH_CLIENT_ID")
 	cfg.Google.ClientSecret = os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET")
+
+	cfg.Todoist.Token = os.Getenv("TODOIST_TOKEN")
 
 	return &cfg, nil
 }

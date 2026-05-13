@@ -123,6 +123,7 @@ func (c *Client) PollOnce(ctx context.Context) error {
 				Title:     t.Title,
 				Done:      t.Status == "completed",
 				Path:      listID, // reused for ToggleReminder
+				Source:    "google",
 				Notes:     t.Notes,
 				Due:       due,
 				Completed: completed,
@@ -135,7 +136,7 @@ func (c *Client) PollOnce(ctx context.Context) error {
 	}
 
 	_ = listTitle
-	c.store.SetReminders(items)
+	c.store.SetRemindersFromSource("google", items)
 	return nil
 }
 

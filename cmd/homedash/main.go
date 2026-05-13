@@ -25,9 +25,33 @@ import (
 	"github.com/zoomacode/homedash/internal/rss"
 	"github.com/zoomacode/homedash/internal/state"
 	"github.com/zoomacode/homedash/internal/store"
+	"github.com/zoomacode/homedash/internal/todoist"
 	"github.com/zoomacode/homedash/internal/weather"
 	"github.com/zoomacode/homedash/internal/web"
 )
+
+// reminderDispatcher routes a toggle request to the right reminders
+// backend by looking up the source recorded on the matching Reminder
+// in state. CalDAV/Google/Todoist all implement web.ReminderToggler.
+type reminderDispatcher struct {
+	store    *state.Store
+	bySource map[string]web.ReminderToggler
+}
+
+func (d *reminderDispatcher) ToggleReminder(ctx context.Context, uid string, done bool) error {
+	for _, r := range d.store.Snapshot().Reminders {
+		if r.UID == uid {
+			if t, ok := d.bySource[r.Source]; ok && t != nil {
+				return t.ToggleReminder(ctx, uid, done)
+			}
+			break
+		}
+	}
+	if t, ok := d.bySource["icloud"]; ok && t != nil {
+		return t.ToggleReminder(ctx, uid, done)
+	}
+	return fmt.Errorf("no reminders backend for uid %s", uid)
+}
 
 func main() {
 	// Subcommand dispatch. `homedash auth-google` runs the OAuth flow,
@@ -56,13 +80,7 @@ func main() {
 
 	st := state.New()
 
-	// If Google Tasks is configured, hand caldav an empty reminders list
-	// name so its poll doesn't overwrite Google's contribution.
-	icloudReminderList := cfg.Reminders.ListName
-	if cfg.Google.ClientID != "" && cfg.Google.ClientSecret != "" && cfg.Google.TokenFile != "" && cfg.Google.TasksListName != "" {
-		icloudReminderList = ""
-	}
-	cd := caldav.New(cfg.ICloud.User, cfg.ICloud.AppPassword, cfg.Calendars.Include, icloudReminderList, st)
+	cd := caldav.New(cfg.ICloud.User, cfg.ICloud.AppPassword, cfg.Calendars.Include, cfg.Reminders.ListName, st)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
@@ -132,11 +150,24 @@ func main() {
 		go gc.Run(ctx, time.Duration(cfg.Calendars.PollMinutes)*time.Minute)
 	}
 
+	// Reminders may come from multiple sources at once. Build a
+	// dispatcher that routes the iPad's "tick the box" toggle to
+	// whichever backend owns that particular reminder UID.
+	dispatch := &reminderDispatcher{store: st, bySource: map[string]web.ReminderToggler{}}
+	dispatch.bySource["icloud"] = cd
+
 	if cfg.Google.TasksListName != "" && googleHC != nil {
 		gt := gtasks.New(googleHC, cfg.Google.TasksListName, st)
-		toggler = gt
+		dispatch.bySource["google"] = gt
 		go gt.Run(ctx, 5*time.Minute)
 	}
+
+	if cfg.Todoist.Token != "" && cfg.Todoist.Project != "" {
+		td := todoist.New(cfg.Todoist.Token, cfg.Todoist.Project, st)
+		dispatch.bySource["todoist"] = td
+		go td.Run(ctx, 6*time.Minute)
+	}
+	toggler = dispatch
 
 	// Photos slideshow always reads from the local cache dir. The dir is
 	// filled by either `homedash pick-photos` (Google Photos picker), or

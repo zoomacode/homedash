@@ -48,6 +48,7 @@ type Reminder struct {
 	UID, Title string
 	Done       bool
 	Path       string
+	Source     string    // "icloud" | "google" | "todoist" — drives the toggle dispatch
 	Notes      string    // optional body / details
 	Due        time.Time // optional; zero means no due date
 	Completed  time.Time // optional; set when Done flipped to true
@@ -70,7 +71,16 @@ type Store struct {
 
 	eventsMu       sync.Mutex
 	eventsBySource map[string][]Event
+
+	remindersMu       sync.Mutex
+	remindersBySource map[string][]Reminder
 }
+
+// reminderGracePreserve matches the dashboard's grace window so a
+// recently-ticked task stays visible across one or two polls even when
+// the upstream API stops returning it. Keep in sync with
+// reminders.templ's reminderGrace.
+const reminderGracePreserve = 5 * time.Minute
 
 func New() *Store {
 	s := &Store{}
@@ -175,7 +185,42 @@ func (s *Store) SetEventsFromSource(source string, ev []Event) {
 }
 
 func (s *Store) SetReminders(r []Reminder) {
-	s.update(func(sn *Snapshot) { sn.Reminders = r })
+	s.SetRemindersFromSource("default", r)
+}
+
+// SetRemindersFromSource replaces the reminders contributed by the
+// named source and merges with every other source's most recent batch.
+// Recently-completed items (Done && Completed within the grace window)
+// that disappear from the new batch are preserved — needed for sources
+// like Todoist whose list endpoint returns active tasks only.
+func (s *Store) SetRemindersFromSource(source string, fresh []Reminder) {
+	s.remindersMu.Lock()
+	if s.remindersBySource == nil {
+		s.remindersBySource = map[string][]Reminder{}
+	}
+
+	prev := s.remindersBySource[source]
+	have := make(map[string]bool, len(fresh))
+	for _, r := range fresh {
+		have[r.UID] = true
+	}
+	for _, r := range prev {
+		if have[r.UID] {
+			continue
+		}
+		if r.Done && !r.Completed.IsZero() && time.Since(r.Completed) < reminderGracePreserve {
+			fresh = append(fresh, r)
+		}
+	}
+	s.remindersBySource[source] = fresh
+
+	merged := make([]Reminder, 0, len(fresh))
+	for _, list := range s.remindersBySource {
+		merged = append(merged, list...)
+	}
+	s.remindersMu.Unlock()
+
+	s.update(func(sn *Snapshot) { sn.Reminders = merged })
 	s.notify("reminders")
 }
 

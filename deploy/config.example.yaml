@@ -63,6 +63,11 @@ photos:
   # How long each photo stays on screen, in seconds.
   slideshow_seconds: 900
 
+todoist:
+  # Title of the Todoist project to surface as a reminders source.
+  # Token comes from TODOIST_TOKEN in secrets.env.
+  project: ""
+
 google:
   # Cached after running `homedash auth-google -config /etc/homedash/config.yaml`
   # once on a machine with a browser. Then copy this file to the Pi.
