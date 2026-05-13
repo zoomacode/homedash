@@ -11,6 +11,7 @@ templ ReminderItem(r state.Reminder) {
 	<li id={ "rem-" + r.UID } class={ "reminder", templ.KV("done", r.Done), templ.KV("overdue", isOverdue(r)) }>
 		<form
 			hx-post={ "/reminders/" + r.UID + "/toggle" }
+			hx-trigger="change"
 			hx-swap="outerHTML"
 			hx-target={ "#rem-" + r.UID }>
 			<label>
@@ -28,6 +29,9 @@ templ ReminderItem(r state.Reminder) {
 						</div>
 					}
 				</div>
+				if r.Done && !r.Completed.IsZero() {
+					<span class="grace" data-end={ fmt.Sprint(r.Completed.Add(reminderGrace).UnixMilli()) } title="tap to undo">⟲ —:—</span>
+				}
 			</label>
 		</form>
 	</li>

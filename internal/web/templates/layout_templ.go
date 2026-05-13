@@ -88,7 +88,7 @@ func Layout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<script src=\"/static/htmx.min.js\" defer></script><script src=\"/static/htmx-sse.js\" defer></script><script src=\"/static/theme.js\" defer></script></head><body hx-ext=\"sse\" sse-connect=\"/events\"><button id=\"theme-toggle\" type=\"button\" aria-label=\"Toggle theme\">☀</button><main>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<script src=\"/static/htmx.min.js\" defer></script><script src=\"/static/htmx-sse.js\" defer></script><script src=\"/static/theme.js\" defer></script><script src=\"/static/reminders.js\" defer></script></head><body hx-ext=\"sse\" sse-connect=\"/events\"><button id=\"theme-toggle\" type=\"button\" aria-label=\"Toggle theme\">☀</button><main>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
