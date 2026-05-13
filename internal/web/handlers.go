@@ -143,11 +143,18 @@ func (s *Server) handleToggleReminder(w http.ResponseWriter, r *http.Request) {
 	_ = r.ParseForm()
 	done := r.Form.Get("done") == "on"
 
-	// Optimistic UI: flip the local copy first.
+	// Optimistic UI: flip the local copy first. Stamp Completed=now
+	// when checking off so the grace-period filter sees the right
+	// timestamp even before the next remote poll catches up.
 	snap := s.store.Snapshot()
 	for i, rem := range snap.Reminders {
 		if rem.UID == uid {
 			snap.Reminders[i].Done = done
+			if done {
+				snap.Reminders[i].Completed = time.Now()
+			} else {
+				snap.Reminders[i].Completed = time.Time{}
+			}
 			s.store.SetReminders(snap.Reminders)
 			break
 		}

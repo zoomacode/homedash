@@ -50,6 +50,7 @@ type Reminder struct {
 	Path       string
 	Notes      string    // optional body / details
 	Due        time.Time // optional; zero means no due date
+	Completed  time.Time // optional; set when Done flipped to true
 }
 type NewsItem struct {
 	GUID, Feed, Title, Link string

@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"fmt"
 	"sort"
 	"time"
 	"github.com/zoomacode/homedash/internal/state"
@@ -32,22 +33,67 @@ templ ReminderItem(r state.Reminder) {
 	</li>
 }
 
+// reminderGrace is how long a ticked reminder stays visible (struck
+// out) before the dashboard hides it.
+const reminderGrace = 5 * time.Minute
+
 templ Reminders(items []state.Reminder) {
+	{{ visible := sortReminders(filterStaleDone(items)) }}
 	<section id="reminders"
 		hx-get="/fragment/reminders"
-		hx-trigger="sse:reminders"
+		hx-trigger={ "sse:reminders" + refreshAfterTrigger(items) }
 		hx-swap="outerHTML">
 		<h2>Reminders</h2>
-		if len(items) == 0 {
+		if len(visible) == 0 {
 			<p class="empty">all caught up</p>
 		} else {
 			<ul>
-				for _, r := range sortReminders(items) {
+				for _, r := range visible {
 					@ReminderItem(r)
 				}
 			</ul>
 		}
 	</section>
+}
+
+// filterStaleDone drops reminders that have been Done for longer than
+// reminderGrace. The handler stamps Reminder.Completed at click time so
+// this works even before the next Google Tasks poll catches up.
+func filterStaleDone(rs []state.Reminder) []state.Reminder {
+	out := make([]state.Reminder, 0, len(rs))
+	for _, r := range rs {
+		if r.Done && !r.Completed.IsZero() && time.Since(r.Completed) > reminderGrace {
+			continue
+		}
+		out = append(out, r)
+	}
+	return out
+}
+
+// refreshAfterTrigger appends a "load delay:" htmx trigger so that
+// when the soonest reminder is about to age out of the grace window
+// the panel re-renders on its own (otherwise it'd stay until the next
+// SSE notification, which only fires on Google poll changes).
+func refreshAfterTrigger(rs []state.Reminder) string {
+	var soonest time.Duration
+	for _, r := range rs {
+		if !r.Done || r.Completed.IsZero() {
+			continue
+		}
+		remain := reminderGrace - time.Since(r.Completed)
+		if remain <= 0 {
+			continue
+		}
+		if soonest == 0 || remain < soonest {
+			soonest = remain
+		}
+	}
+	if soonest == 0 {
+		return ""
+	}
+	// Add a small buffer so the timer fires after the threshold passes.
+	soonest += 2 * time.Second
+	return fmt.Sprintf(", load delay:%dms", soonest.Milliseconds())
 }
 
 // sortReminders puts overdue first, then due today, then by ascending

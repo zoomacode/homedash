@@ -92,9 +92,12 @@ func (c *Client) PollOnce(ctx context.Context) error {
 	var items []state.Reminder
 	pageToken := ""
 	for {
+		// Pull completed tasks too so the dashboard can keep showing
+		// them (struck out) during the grace window before they
+		// disappear. The render layer filters them by Completed time.
 		call := svc.Tasks.List(listID).
 			MaxResults(100).
-			ShowCompleted(false).
+			ShowCompleted(true).
 			ShowHidden(false)
 		if pageToken != "" {
 			call = call.PageToken(pageToken)
@@ -111,13 +114,18 @@ func (c *Client) PollOnce(ctx context.Context) error {
 			if t.Due != "" {
 				due, _ = time.Parse(time.RFC3339, t.Due)
 			}
+			var completed time.Time
+			if t.Completed != nil && *t.Completed != "" {
+				completed, _ = time.Parse(time.RFC3339, *t.Completed)
+			}
 			items = append(items, state.Reminder{
-				UID:   t.Id,
-				Title: t.Title,
-				Done:  t.Status == "completed",
-				Path:  listID, // reused for ToggleReminder
-				Notes: t.Notes,
-				Due:   due,
+				UID:       t.Id,
+				Title:     t.Title,
+				Done:      t.Status == "completed",
+				Path:      listID, // reused for ToggleReminder
+				Notes:     t.Notes,
+				Due:       due,
+				Completed: completed,
 			})
 		}
 		if page.NextPageToken == "" {

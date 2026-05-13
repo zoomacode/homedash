@@ -292,9 +292,8 @@ ul { list-style: none; padding: 0; margin: 0; }
   gap: 0.3rem;
   min-height: 7rem;
 }
-#events .day-cell.is-today {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
+#events .day-cell.is-today .day-head .dnum {
+  color: var(--accent);
 }
 #events .day-head {
   display: flex;
