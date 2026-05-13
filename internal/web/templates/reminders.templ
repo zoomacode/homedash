@@ -47,7 +47,12 @@ templ Reminders(items []state.Reminder) {
 		hx-get="/fragment/reminders"
 		hx-trigger={ "sse:reminders" + refreshAfterTrigger(items) }
 		hx-swap="outerHTML">
-		<h2>Reminders</h2>
+		<h2>
+			<span>Reminders</span>
+			if n := countPending(visible); n > 0 {
+				<span class="count">{ fmt.Sprintf("%d", n) }</span>
+			}
+		</h2>
 		if len(visible) == 0 {
 			<p class="empty">all caught up</p>
 		} else {
@@ -58,6 +63,18 @@ templ Reminders(items []state.Reminder) {
 			</ul>
 		}
 	</section>
+}
+
+// countPending counts the not-yet-ticked reminders. Used in the section
+// header so the user can see how many items are below the scroll fold.
+func countPending(rs []state.Reminder) int {
+	n := 0
+	for _, r := range rs {
+		if !r.Done {
+			n++
+		}
+	}
+	return n
 }
 
 // filterStaleDone drops reminders that have been Done for longer than
